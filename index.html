@@ -108,21 +108,24 @@
 
     /* ===== FILTER PANEL ===== */
     .filter-panel {
-      display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+      display: flex; flex-direction: column; gap: 12px;
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: var(--radius-md); padding: 18px 22px; margin-bottom: 20px;
     }
-    .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px; }
-    .filter-group label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
-    .filter-group input {
-      background: var(--bg-secondary); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 9px 13px;
-      color: var(--text-primary); font-family: inherit; font-size: 0.9rem;
-      transition: var(--transition);
+    .filter-label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; margin-bottom: 8px; }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+    .filter-chip {
+      padding: 8px 18px; border-radius: 99px; background: var(--bg-secondary);
+      border: 1px solid var(--border); color: var(--text-muted);
+      font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; gap: 8px;
     }
-    .filter-group input:focus { outline: none; border-color: var(--accent1); box-shadow: 0 0 0 3px rgba(99,179,237,0.15); }
-    .filter-group input::placeholder { color: var(--text-dim); }
-    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+    .filter-chip:hover { border-color: var(--accent1); color: var(--text-primary); }
+    .filter-chip.active {
+      background: rgba(99,179,237,0.15); border-color: var(--accent1); color: var(--accent1);
+      box-shadow: 0 0 15px rgba(99,179,237,0.1);
+    }
+    .filter-chip .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 
     /* ===== STATS BAR ===== */
     .stats-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -499,17 +502,20 @@
   </div>
 
   <div class="filter-panel">
-    <div class="filter-group">
-      <label for="filterDate">วันที่</label>
-      <input type="date" id="filterDate" onchange="loadData()" />
-    </div>
-    <div class="filter-group">
-      <label for="filterInvID" id="filterInvLabel">เลขที่ใบส่งอัด</label>
-      <input type="text" id="filterInvID" placeholder="ค้นหาเลขใบส่งอัด..." oninput="debounceLoad()" />
-    </div>
-    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
-      <button class="btn btn-secondary btn-sm" onclick="clearFilters()">🔄 ล้างตัวกรอง</button>
-      <button class="btn btn-primary btn-sm" onclick="loadData()">🔍 โหลดข้อมูล</button>
+    <div class="filter-label">กรองตามประเภทสินค้า :</div>
+    <div class="filter-chips">
+      <button class="filter-chip active" onclick="setProductFilter('all', this)">
+        แสดงทั้งหมด
+      </button>
+      <button class="filter-chip" onclick="setProductFilter('ไนโตรเจน 1.5 Q', this)">
+        <span class="dot" style="background:var(--accent-n2);"></span> N₂ 1.5Q
+      </button>
+      <button class="filter-chip" onclick="setProductFilter('ออกซิเจน 1.5 Q', this)">
+        <span class="dot" style="background:var(--accent-o2);"></span> O₂ 1.5Q
+      </button>
+      <button class="filter-chip" onclick="setProductFilter('ออกซิเจน 0.5 Q', this)">
+        <span class="dot" style="background:var(--accent-o2s);"></span> O₂ 0.5Q
+      </button>
     </div>
   </div>
 
@@ -548,9 +554,9 @@
             <th id="thInv">เลขที่ใบส่งอัด</th>
             <th>วันที่</th>
             <th id="thImg">รูปภาพ</th>
-            <th>N₂ 1.5Q</th>
-            <th>O₂ 1.5Q</th>
-            <th>O₂ 0.5Q</th>
+            <th style="text-align:center;"><span class="badge badge-n2">N₂ 1.5Q</span></th>
+            <th style="text-align:center;"><span class="badge badge-o2">O₂ 1.5Q</span></th>
+            <th style="text-align:center;"><span class="badge badge-o2s">O₂ 0.5Q</span></th>
             <th id="thManage" style="text-align:right;">จัดการ</th>
           </tr>
         </thead>
@@ -582,6 +588,7 @@ let detailCache  = {};
 let editingInvID = null;
 let imageBase64  = null;
 let imageFilename = '';
+let filterProduct = 'all';
 let debounceTimer = null;
 
 const PRODUCT_LABEL_MAP = {
@@ -617,17 +624,13 @@ function switchSystem(sys) {
   document.getElementById('subTitle').textContent = isTank ? 'บันทึกและติดตามการส่งอัดท่อ ไนโตรเจน / ออกซิเจน' : isSumm ? 'เปรียบเทียบยอดค้างส่งและไทม์ไลน์ล่าสุด' : 'บันทึกและติดตามการรับเข้าท่อสำเร็จจาก Supplier';
   
   document.getElementById('addBtn').style.display = isSumm ? 'none' : 'inline-flex';
-  document.getElementById('filterInvLabel').style.display = isSumm ? 'none' : 'block';
-  document.getElementById('filterInvID').style.display = isSumm ? 'none' : 'inline-block';
   
   document.getElementById('thStatus').style.display = isSumm ? 'table-cell' : 'none';
   document.getElementById('thManage').style.display = isSumm ? 'none' : 'table-cell';
 
   if (!isSumm) {
     document.getElementById('addBtn').innerHTML = isTank ? '➕ เพิ่มใบส่งอัด' : '➕ เพิ่มใบรับเข้า';
-    document.getElementById('filterInvLabel').textContent = isTank ? 'เลขที่ใบส่งอัด' : 'เลขที่ Invoice';
     document.getElementById('thInv').textContent = isTank ? 'เลขที่ใบส่งอัด' : 'เลขที่ Invoice';
-    document.getElementById('filterInvID').placeholder = isTank ? 'ค้นหาเลขใบส่งอัด...' : 'ค้นหาเลข Invoice...';
   }
   
   document.getElementById('tableTitleText').textContent = isTank ? 'รายการส่งอัดท่อ' : isSumm ? 'ไทม์ไลน์ล่าสุด' : 'รายการรับเข้าสำเร็จ';
@@ -637,7 +640,13 @@ function switchSystem(sys) {
   document.getElementById('lblO2L').textContent = isSumm ? 'O₂ 1.5Q ค้างส่ง' : 'O₂ 1.5Q รวม';
   document.getElementById('lblO2S').textContent = isSumm ? 'O₂ 0.5Q ค้างส่ง' : 'O₂ 0.5Q รวม';
 
-  document.getElementById('filterInvID').value = '';
+  processLocalData();
+}
+
+function setProductFilter(prod, btn) {
+  filterProduct = prod;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
   processLocalData();
 }
 
@@ -670,7 +679,6 @@ async function apiPost(payload) {
 //  INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('filterDate').value = getTodayStr();
   loadData();
   setupDragDrop();
 });
@@ -774,8 +782,6 @@ async function loadData(forceRefresh = false) {
 
 function processLocalData() {
   if (!allDataset) return;
-  const filterDate  = document.getElementById('filterDate').value;
-  const filterInvID = document.getElementById('filterInvID').value.trim().toLowerCase();
   
   detailCache = {}; 
   const buildCache = (arr, sys) => {
@@ -795,15 +801,9 @@ function processLocalData() {
   if (currentSystem === 'Tank' || currentSystem === 'Recripte') {
     const mainArr = currentSystem === 'Tank' ? allDataset.tankMain : allDataset.recMain;
     rowsToRender = (mainArr || []).filter(r => {
-      let pass = true;
-      if (filterDate) {
-        // Robust date comparison: normalize both to YYYY-MM-DD
-        const rowDate = parseDateStr(r.date);
-        const targetDate = parseDateStr(filterDate);
-        if (rowDate !== targetDate) pass = false;
-      }
-      if (filterInvID && !r.invDeliveryID.toLowerCase().includes(filterInvID)) pass = false;
-      return pass;
+      if (filterProduct === 'all') return true;
+      const items = detailCache[currentSystem + '_' + r.invDeliveryID] || [];
+      return items.some(it => it.product === filterProduct && it.qty > 0);
     });
     renderStandardTable(rowsToRender);
   } else {
@@ -811,8 +811,9 @@ function processLocalData() {
     const summArr = [];
     const tMain = allDataset.tankMain || [];
     for (const t of tMain) {
-      if (filterDate) {
-        if (parseDateStr(t.date) !== parseDateStr(filterDate)) continue;
+      if (filterProduct !== 'all') {
+        const items = detailCache['Tank_' + t.invDeliveryID] || [];
+        if (!items.some(it => it.product === filterProduct && it.qty > 0)) continue;
       }
       summArr.push({ type: 'Tank', date: t.date, rec: t });
     }
@@ -820,8 +821,9 @@ function processLocalData() {
     const rMain = allDataset.recMain || [];
     const recByDate = {};
     for (const r of rMain) {
-      if (filterDate) {
-        if (parseDateStr(r.date) !== parseDateStr(filterDate)) continue;
+      if (filterProduct !== 'all') {
+        const items = detailCache['Recripte_' + r.invDeliveryID] || [];
+        if (!items.some(it => it.product === filterProduct && it.qty > 0)) continue;
       }
       if (!recByDate[r.date]) recByDate[r.date] = [];
       recByDate[r.date].push(r);
@@ -849,7 +851,10 @@ function renderStandardTable(rows) {
 
   const getQty = (items, lbl) => {
     const f = items.find(it => it.product === lbl);
-    return f && f.qty ? `<strong>${f.qty}</strong>` : `<span style="color:var(--border)">-</span>`;
+    if (!f || !f.qty) return `<div style="text-align:center; color:var(--border)">-</div>`;
+    const k = labelToKey(lbl);
+    const cls = k === 'N2' ? 'badge-n2' : k === 'O2L' ? 'badge-o2' : 'badge-o2s';
+    return `<div style="text-align:center;"><span class="badge ${cls}" style="min-width:35px; text-align:center;">${f.qty}</span></div>`;
   };
 
   tbody.innerHTML = rows.map(r => {
@@ -897,7 +902,10 @@ function renderSummaryTable(rows) {
 
   const getQtyTank = (items, lbl) => {
     const f = items.find(it => it.product === lbl);
-    return f && f.qty ? `<strong>${f.qty}</strong>` : `<span style="color:var(--border)">-</span>`;
+    if (!f || !f.qty) return `<div style="text-align:center; color:var(--border)">-</div>`;
+    const k = labelToKey(lbl);
+    const cls = k === 'N2' ? 'badge-n2' : k === 'O2L' ? 'badge-o2' : 'badge-o2s';
+    return `<div style="text-align:center;"><span class="badge ${cls}" style="min-width:35px; text-align:center;">${f.qty}</span></div>`;
   };
 
   const getQtyRecGroup = (invoices, lbl) => {
@@ -1021,8 +1029,10 @@ function updateStats() {
 //  FILTERS
 // ============================================================
 function clearFilters() {
-  document.getElementById('filterDate').value  = '';
-  document.getElementById('filterInvID').value = '';
+  filterProduct = 'all';
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  const allBtn = document.querySelector('.filter-chip');
+  if (allBtn) allBtn.classList.add('active');
   loadData();
 }
 
