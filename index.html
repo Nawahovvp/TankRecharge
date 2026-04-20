@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบส่งอัดท่อ</title>
+  <meta name="description" content="ระบบบันทึกการส่งอัดท่อ ไนโตรเจน ออกซิเจน" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ===== DESIGN TOKENS ===== */
+    :root {
+      --bg-primary:   #0d0f1a;
+      --bg-secondary: #131627;
+      --bg-card:      #1a1e33;
+      --bg-card2:     #1f2440;
+      --border:       rgba(255,255,255,0.08);
+      --border-glow:  rgba(99,179,237,0.35);
+      --accent1:      #63b3ed;
+      --accent2:      #76e4f7;
+      --accent-n2:    #68d391;
+      --accent-o2:    #fc8181;
+      --accent-o2s:   #f6ad55;
+      --text-primary: #e8eaf0;
+      --text-muted:   #8b92b8;
+      --text-dim:     #5a6080;
+      --success:      #68d391;
+      --danger:       #fc8181;
+      --warning:      #f6ad55;
+      --radius-sm:    8px;
+      --radius-md:    14px;
+      --radius-lg:    20px;
+      --shadow-card:  0 4px 24px rgba(0,0,0,0.45);
+      --shadow-glow:  0 0 24px rgba(99,179,237,0.18);
+      --transition:   0.22s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Sarabun', 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+    ::-webkit-scrollbar-thumb { background: var(--accent1); border-radius: 99px; }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 10%, rgba(99,179,237,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 35% at 80% 80%, rgba(118,228,247,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .app-wrapper { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 20px 16px 60px; }
+
+    /* ===== HEADER ===== */
+    .app-header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 24px 28px; margin-bottom: 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+    }
+    .header-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(99,179,237,0.35);
+    }
+    .header-text h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
+    .header-text p  { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
+    .header-actions { margin-left: auto; }
+
+    /* ===== BTN ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 10px 20px; border: none; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; transition: var(--transition); white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      color: #0d192e;
+      box-shadow: 0 4px 18px rgba(99,179,237,0.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(99,179,237,0.5); }
+    .btn-secondary { background: var(--bg-card2); color: var(--text-primary); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--bg-card); border-color: var(--accent1); }
+    .btn-danger  { background: rgba(252,129,129,0.15); color: var(--danger); border: 1px solid rgba(252,129,129,0.35); }
+    .btn-danger:hover  { background: rgba(252,129,129,0.25); }
+    .btn-success { background: rgba(104,211,145,0.15); color: var(--success); border: 1px solid rgba(104,211,145,0.35); }
+    .btn-success:hover { background: rgba(104,211,145,0.25); }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    /* ===== FILTER PANEL ===== */
+    .filter-panel {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 18px 22px; margin-bottom: 20px;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px; }
+    .filter-group label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+    .filter-group input {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 9px 13px;
+      color: var(--text-primary); font-family: inherit; font-size: 0.9rem;
+      transition: var(--transition);
+    }
+    .filter-group input:focus { outline: none; border-color: var(--accent1); box-shadow: 0 0 0 3px rgba(99,179,237,0.15); }
+    .filter-group input::placeholder { color: var(--text-dim); }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+
+    /* ===== STATS BAR ===== */
+    .stats-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-card {
+      flex: 1; min-width: 140px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 16px 20px;
+      display: flex; align-items: center; gap: 14px;
+      transition: var(--transition);
+    }
+    .stat-card:hover { border-color: rgba(99,179,237,0.2); transform: translateY(-2px); }
+    .stat-icon { font-size: 28px; }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .stat-value { font-size: 1.55rem; font-weight: 700; color: var(--text-primary); line-height: 1; margin-top: 3px; }
+
+    /* ===== TABLE CARD ===== */
+    .table-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+    .table-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 22px; border-bottom: 1px solid var(--border);
+    }
+    .table-title { font-size: 1rem; font-weight: 700; }
+    .table-count { font-size: 0.8rem; color: var(--text-muted); margin-left: 8px; }
+
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      padding: 12px 16px; text-align: left;
+      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--text-muted);
+      background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    }
+    .data-table td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.9rem; vertical-align: middle; }
+    .data-table tbody tr { transition: var(--transition); }
+    .data-table tbody tr:hover { background: rgba(99,179,237,0.05); }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+    .badge-n2  { background: rgba(104,211,145,0.15); color: var(--accent-n2); }
+    .badge-o2  { background: rgba(252,129,129,0.15); color: var(--accent-o2); }
+    .badge-o2s { background: rgba(246,173,85,0.15);  color: var(--accent-o2s); }
+
+    .img-thumb {
+      width: 44px; height: 44px; object-fit: cover;
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+      cursor: pointer; transition: var(--transition);
+    }
+    .img-thumb:hover { transform: scale(1.1); border-color: var(--accent1); }
+    .no-image { font-size: 0.75rem; color: var(--text-dim); }
+
+    .expand-btn {
+      background: rgba(99,179,237,0.12); border: 1px solid rgba(99,179,237,0.2);
+      color: var(--accent1); border-radius: 6px; padding: 4px 10px;
+      font-size: 0.75rem; cursor: pointer; transition: var(--transition);
+    }
+    .expand-btn:hover { background: rgba(99,179,237,0.22); }
+
+    /* Detail row */
+    .detail-row td { padding: 0 !important; }
+    .detail-inner {
+      background: rgba(13,15,26,0.6); border-bottom: 1px solid var(--border);
+      overflow: hidden; max-height: 0; transition: max-height 0.35s ease;
+    }
+    .detail-inner.open { max-height: 500px; }
+    .detail-table-wrap { padding: 12px 24px 16px; }
+    .detail-sub-table { width: 100%; border-collapse: collapse; }
+    .detail-sub-table th {
+      padding: 8px 12px; font-size: 0.72rem; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--text-dim); font-weight: 700;
+      border-bottom: 1px solid var(--border); text-align: left;
+    }
+    .detail-sub-table td { padding: 8px 12px; font-size: 0.87rem; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .detail-sub-table tr:last-child td { border-bottom: none; }
+
+    /* Empty state */
+    .empty-state { padding: 60px 20px; text-align: center; }
+    .empty-state .empty-icon { font-size: 54px; margin-bottom: 14px; }
+    .empty-state p { color: var(--text-muted); font-size: 0.95rem; }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 900;
+      background: rgba(0,0,0,0.72); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: var(--bg-card); border: 1px solid var(--border-glow);
+      border-radius: var(--radius-lg); width: 100%; max-width: 680px;
+      max-height: 92vh; overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6), var(--shadow-glow);
+      transform: translateY(30px); transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    }
+    .modal-overlay.open .modal-box { transform: translateY(0); }
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 22px 26px; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--bg-card); z-index: 10;
+    }
+    .modal-head h2 { font-size: 1.15rem; font-weight: 700; }
+    .modal-close {
+      width: 32px; height: 32px; border: none; background: var(--bg-secondary);
+      color: var(--text-muted); border-radius: 8px; cursor: pointer;
+      font-size: 18px; display: flex; align-items: center; justify-content: center;
+      transition: var(--transition);
+    }
+    .modal-close:hover { background: var(--danger); color: #fff; }
+    .modal-body { padding: 24px 26px; }
+    .modal-foot {
+      padding: 16px 26px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; justify-content: flex-end;
+      position: sticky; bottom: 0; background: var(--bg-card);
+    }
+
+    /* Form */
+    .form-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+    .form-group { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 200px; }
+    .form-group label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .form-group input, .form-group select {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      color: var(--text-primary); font-family: inherit; font-size: 0.9rem;
+      transition: var(--transition); width: 100%;
+    }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent1); box-shadow: 0 0 0 3px rgba(99,179,237,0.15); }
+
+    .section-label {
+      font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--accent1); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* Image upload */
+    .img-upload-zone {
+      border: 2px dashed var(--border); border-radius: var(--radius-md);
+      padding: 24px; text-align: center; cursor: pointer;
+      transition: var(--transition); background: var(--bg-secondary);
+      position: relative;
+    }
+    .img-upload-zone:hover, .img-upload-zone.drag-over {
+      border-color: var(--accent1); background: rgba(99,179,237,0.06);
+    }
+    .img-upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+    .img-upload-zone .upload-icon { font-size: 36px; margin-bottom: 8px; }
+    .img-upload-zone p { font-size: 0.85rem; color: var(--text-muted); }
+    .img-upload-zone span { font-size: 0.75rem; color: var(--text-dim); }
+    .img-preview-wrap { position: relative; display: inline-block; margin-top: 12px; }
+    .img-preview { max-width: 100%; max-height: 180px; border-radius: var(--radius-sm); border: 1px solid var(--border); object-fit: contain; }
+    .img-remove-btn {
+      position: absolute; top: -8px; right: -8px;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--danger); color: #fff; border: none; cursor: pointer;
+      font-size: 14px; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Product rows */
+    .product-rows { display: flex; flex-direction: column; gap: 10px; }
+    .product-row {
+      display: grid; grid-template-columns: 1fr 120px;
+      gap: 12px; align-items: center;
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+    }
+    .product-row .product-name { font-size: 0.88rem; font-weight: 600; }
+    .product-row .product-badge { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+    .product-row input[type="number"] {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 9px 12px;
+      color: var(--text-primary); font-family: inherit; font-size: 0.95rem; font-weight: 600;
+      width: 100%; text-align: center; transition: var(--transition);
+    }
+    .product-row input[type="number"]:focus { outline: none; border-color: var(--accent1); box-shadow: 0 0 0 3px rgba(99,179,237,0.15); }
+
+    /* Lightbox */
+    .lightbox {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.9); display: flex;
+      align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .lightbox.open { opacity: 1; pointer-events: all; }
+    .lightbox img { max-width: 95vw; max-height: 95vh; border-radius: var(--radius-md); box-shadow: 0 0 60px rgba(0,0,0,0.8); }
+    .lightbox-close {
+      position: absolute; top: 20px; right: 24px;
+      background: rgba(255,255,255,0.1); border: none; color: #fff;
+      width: 40px; height: 40px; border-radius: 50%; font-size: 20px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Toast */
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
+    .toast {
+      padding: 12px 20px; border-radius: var(--radius-md);
+      font-size: 0.88rem; font-weight: 600; color: #fff;
+      display: flex; align-items: center; gap: 10px;
+      min-width: 220px; box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+      animation: toastIn 0.3s ease;
+    }
+    .toast.success { background: linear-gradient(135deg, #2d8f5a, #38a169); }
+    .toast.error   { background: linear-gradient(135deg, #9b2335, #e53e3e); }
+    .toast.info    { background: linear-gradient(135deg, #2b5f9e, #3182ce); }
+    @keyframes toastIn { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* Loading */
+    .loading-overlay {
+      position: fixed; inset: 0; z-index: 1500;
+      background: rgba(13,15,26,0.8); display: flex;
+      align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .loading-overlay.show { opacity: 1; pointer-events: all; }
+    .spinner {
+      width: 44px; height: 44px; border: 3px solid rgba(99,179,237,0.2);
+      border-top-color: var(--accent1); border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay p { color: var(--text-muted); font-size: 0.9rem; }
+
+    /* Confirm */
+    .confirm-box {
+      background: var(--bg-card); border: 1px solid rgba(252,129,129,0.3);
+      border-radius: var(--radius-lg); padding: 28px; max-width: 380px; width: 100%;
+      text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    }
+    .confirm-box .confirm-icon { font-size: 44px; margin-bottom: 12px; }
+    .confirm-box h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+    .confirm-box p  { color: var(--text-muted); font-size: 0.88rem; margin-bottom: 20px; }
+    .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+
+    /* ===== TABS ===== */
+    .tabs-wrapper { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 16px; overflow-x: auto; }
+    .tab-btn {
+      padding: 10px 24px; font-size: 1rem; font-weight: 700; color: var(--text-muted);
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
+      cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 8px;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .tab-btn:hover { background: var(--bg-card2); color: var(--text-primary); }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      color: #0d192e; border-color: transparent; box-shadow: 0 4px 18px rgba(99,179,237,0.35);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 640px) {
+      .app-header { flex-wrap: wrap; gap: 12px; }
+      .header-actions { width: 100%; }
+      .header-actions .btn { width: 100%; justify-content: center; }
+      .stats-bar { gap: 8px; }
+      .data-table th:nth-child(4),
+      .data-table td:nth-child(4) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p id="loadingText">กำลังโหลดข้อมูล...</p>
+</div>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toastContainer"></div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img src="" id="lightboxImg" alt="Invoice Image" />
+</div>
+
+<!-- DELETE CONFIRM -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <h3>ยืนยันการลบ?</h3>
+    <p id="confirmText">ข้อมูลนี้จะถูกลบถาวร ไม่สามารถกู้คืนได้</p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary btn-sm" onclick="closeConfirm()">ยกเลิก</button>
+      <button class="btn btn-danger btn-sm" id="confirmOkBtn">ลบเลย</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN MODAL -->
+<div class="modal-overlay" id="mainModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 id="modalTitle">➕ เพิ่มใบส่งอัด</h2>
+      <button class="modal-close" onclick="closeModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="fldInvID" id="fldInvLabel">เลขที่ใบส่งอัด *</label>
+          <input type="text" id="fldInvID" placeholder="เช่น INV-2024-001" />
+        </div>
+        <div class="form-group">
+          <label for="fldDate">วันที่ *</label>
+          <input type="date" id="fldDate" />
+        </div>
+      </div>
+
+      <div class="section-label">รูปภาพใบส่งอัด</div>
+      <div class="img-upload-zone" id="uploadZone">
+        <input type="file" id="imgFileInput" accept="image/*" onchange="handleImageSelect(event)" />
+        <div id="uploadPlaceholder">
+          <div class="upload-icon">📄</div>
+          <p>คลิกหรือลากวางรูปภาพที่นี่</p>
+          <span>JPG, PNG, WEBP | สูงสุด 5 MB</span>
+        </div>
+        <div id="imgPreviewWrap" class="img-preview-wrap" style="display:none;">
+          <img src="" id="imgPreview" class="img-preview" alt="preview" />
+          <button class="img-remove-btn" onclick="removeImage(event)">✕</button>
+        </div>
+      </div>
+      <div id="existingImgWrap" style="margin-top:10px;"></div>
+
+      <div class="section-label" style="margin-top:22px;">รายการสินค้า (จำนวนส่ง)</div>
+      <div class="product-rows">
+        <div class="product-row">
+          <div>
+            <div class="product-name">🔵 ไนโตรเจน 1.5 Q</div>
+            <div class="product-badge">Nitrogen 1.5 Q</div>
+          </div>
+          <input type="number" id="qty-N2" placeholder="0" min="0" step="1" />
+        </div>
+        <div class="product-row">
+          <div>
+            <div class="product-name">🔴 ออกซิเจน 1.5 Q</div>
+            <div class="product-badge">Oxygen 1.5 Q</div>
+          </div>
+          <input type="number" id="qty-O2L" placeholder="0" min="0" step="1" />
+        </div>
+        <div class="product-row">
+          <div>
+            <div class="product-name">🟠 ออกซิเจน 0.5 Q</div>
+            <div class="product-badge">Oxygen 0.5 Q</div>
+          </div>
+          <input type="number" id="qty-O2S" placeholder="0" min="0" step="1" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveRecord()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div class="app-wrapper">
+  <header class="app-header">
+    <div class="header-icon">🛢️</div>
+    <div class="header-text">
+      <h1 id="mainTitle">ระบบส่งอัดท่อ</h1>
+      <p id="subTitle">บันทึกและติดตามการส่งอัดท่อ ไนโตรเจน / ออกซิเจน</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" id="addBtn" onclick="openAddModal()">➕ เพิ่มใบส่งอัด</button>
+    </div>
+  </header>
+
+  <div class="tabs-wrapper">
+    <button class="tab-btn active" id="tab-Tank" onclick="switchSystem('Tank')">🚀 ระบบส่งอัดท่อ</button>
+    <button class="tab-btn" id="tab-Recripte" onclick="switchSystem('Recripte')">📥 ระบบรับเข้าสำเร็จ</button>
+    <button class="tab-btn" id="tab-Summary" onclick="switchSystem('Summary')">📊 สรุปข้อมูล</button>
+  </div>
+
+  <div class="filter-panel">
+    <div class="filter-group">
+      <label for="filterDate">วันที่</label>
+      <input type="date" id="filterDate" onchange="loadData()" />
+    </div>
+    <div class="filter-group">
+      <label for="filterInvID" id="filterInvLabel">เลขที่ใบส่งอัด</label>
+      <input type="text" id="filterInvID" placeholder="ค้นหาเลขใบส่งอัด..." oninput="debounceLoad()" />
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+      <button class="btn btn-secondary btn-sm" onclick="clearFilters()">🔄 ล้างตัวกรอง</button>
+      <button class="btn btn-primary btn-sm" onclick="loadData()">🔍 โหลดข้อมูล</button>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-icon">📋</div>
+      <div><div class="stat-label" id="statLabel1">ใบส่งอัดทั้งหมด</div><div class="stat-value" id="statTotal">—</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔵</div>
+      <div><div class="stat-label" id="lblN2">N₂ 1.5Q รวม</div><div class="stat-value" id="statN2">—</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔴</div>
+      <div><div class="stat-label" id="lblO2L">O₂ 1.5Q รวม</div><div class="stat-value" id="statO2L">—</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🟠</div>
+      <div><div class="stat-label" id="lblO2S">O₂ 0.5Q รวม</div><div class="stat-value" id="statO2S">—</div></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div>
+        <span class="table-title" id="tableTitleText">รายการส่งอัดท่อ</span>
+        <span class="table-count" id="tableCount"></span>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="mainTable">
+        <thead>
+          <tr>
+            <th style="width:44px;"></th>
+            <th id="thStatus" style="display:none;width:70px;">สถานะ</th>
+            <th id="thInv">เลขที่ใบส่งอัด</th>
+            <th>วันที่</th>
+            <th id="thImg">รูปภาพ</th>
+            <th>N₂ 1.5Q</th>
+            <th>O₂ 1.5Q</th>
+            <th>O₂ 0.5Q</th>
+            <th id="thManage" style="text-align:right;">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="mainTbody">
+          <tr><td colspan="9">
+            <div class="empty-state">
+              <div class="empty-icon">📦</div>
+              <p>กำลังโหลดข้อมูล...</p>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  CONFIG — เปลี่ยน URL นี้เป็น Apps Script Web App URL ของคุณ
+// ============================================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbyagYtYm-PfivHFyuYfjjyzMROEqVrD5ANpexNUQCSATpxeU7ZDLAiVG6mIVeOUBnXC/exec';
+
+// ============================================================
+//  STATE
+// ============================================================
+let currentSystem = 'Tank';
+let allDataset   = null;
+let detailCache  = {};
+let editingInvID = null;
+let imageBase64  = null;
+let imageFilename = '';
+let debounceTimer = null;
+
+const PRODUCT_LABEL_MAP = {
+  'N2':  'ไนโตรเจน 1.5 Q',
+  'O2L': 'ออกซิเจน 1.5 Q',
+  'O2S': 'ออกซิเจน 0.5 Q',
+};
+
+function labelToKey(label) {
+  for (const [k, v] of Object.entries(PRODUCT_LABEL_MAP)) {
+    if (v === label) return k;
+  }
+  return null;
+}
+
+// ============================================================
+//  TAB SYSTEM
+// ============================================================
+function switchSystem(sys) {
+  if (currentSystem === sys) return;
+  currentSystem = sys;
+
+  document.getElementById('tab-Tank').classList.remove('active');
+  document.getElementById('tab-Recripte').classList.remove('active');
+  document.getElementById('tab-Summary').classList.remove('active');
+  document.getElementById('tab-' + sys).classList.add('active');
+
+  const isTank = (sys === 'Tank');
+  const isSumm = (sys === 'Summary');
+  const isRec  = (sys === 'Recripte');
+  
+  document.getElementById('mainTitle').textContent = isTank ? 'ระบบส่งอัดท่อ' : isSumm ? 'สรุปข้อมูล / ยอดค้างส่ง' : 'ระบบรับเข้าสำเร็จ';
+  document.getElementById('subTitle').textContent = isTank ? 'บันทึกและติดตามการส่งอัดท่อ ไนโตรเจน / ออกซิเจน' : isSumm ? 'เปรียบเทียบยอดค้างส่งและไทม์ไลน์ล่าสุด' : 'บันทึกและติดตามการรับเข้าท่อสำเร็จจาก Supplier';
+  
+  document.getElementById('addBtn').style.display = isSumm ? 'none' : 'inline-flex';
+  document.getElementById('filterInvLabel').style.display = isSumm ? 'none' : 'block';
+  document.getElementById('filterInvID').style.display = isSumm ? 'none' : 'inline-block';
+  
+  document.getElementById('thStatus').style.display = isSumm ? 'table-cell' : 'none';
+  document.getElementById('thInv').style.display = isSumm ? 'none' : 'table-cell';
+  document.getElementById('thManage').style.display = isSumm ? 'none' : 'table-cell';
+
+  if (!isSumm) {
+    document.getElementById('addBtn').innerHTML = isTank ? '➕ เพิ่มใบส่งอัด' : '➕ เพิ่มใบรับเข้า';
+    document.getElementById('filterInvLabel').textContent = isTank ? 'เลขที่ใบส่งอัด' : 'เลขที่ Invoice';
+    document.getElementById('thInv').textContent = isTank ? 'เลขที่ใบส่งอัด' : 'เลขที่ Invoice';
+    document.getElementById('filterInvID').placeholder = isTank ? 'ค้นหาเลขใบส่งอัด...' : 'ค้นหาเลข Invoice...';
+  }
+  
+  document.getElementById('tableTitleText').textContent = isTank ? 'รายการส่งอัดท่อ' : isSumm ? 'ไทม์ไลน์ล่าสุด' : 'รายการรับเข้าสำเร็จ';
+  document.getElementById('statLabel1').textContent = isTank ? 'ใบส่งอัดทั้งหมด' : isSumm ? 'จำนวนใบส่งอัด' : 'ใบรับเข้าทั้งหมด';
+  
+  document.getElementById('lblN2').textContent = isSumm ? 'N₂ 1.5Q ค้างส่ง' : 'N₂ 1.5Q รวม';
+  document.getElementById('lblO2L').textContent = isSumm ? 'O₂ 1.5Q ค้างส่ง' : 'O₂ 1.5Q รวม';
+  document.getElementById('lblO2S').textContent = isSumm ? 'O₂ 0.5Q ค้างส่ง' : 'O₂ 0.5Q รวม';
+
+  document.getElementById('filterInvID').value = '';
+  processLocalData();
+}
+
+// ============================================================
+//  API HELPERS
+// ============================================================
+async function apiGet(action, params = {}) {
+  const url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  url.searchParams.set('system', currentSystem);
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== '' && v !== null && v !== undefined) url.searchParams.set(k, v);
+  }
+  const resp = await fetch(url.toString(), { redirect: 'follow' });
+  return await resp.json();
+}
+
+async function apiPost(payload) {
+  payload.system = currentSystem;
+  const resp = await fetch(API_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+  });
+  return await resp.json();
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('filterDate').value = getTodayStr();
+  loadData();
+  setupDragDrop();
+});
+
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function debounceLoad() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(loadData, 400);
+}
+
+// ============================================================
+//  LOAD & PROCESS DATA
+// ============================================================
+async function loadData(forceRefresh = false) {
+  if (!allDataset || forceRefresh) {
+    showLoading('กำลังโหลดข้อมูลทั้งหมด...');
+    try {
+      const resp = await apiGet('getAllData');
+      if (resp && resp.error) throw new Error(resp.error);
+      allDataset = resp;
+    } catch (err) {
+      onError(err);
+      return;
+    } finally {
+      hideLoading();
+    }
+  }
+  processLocalData();
+}
+
+function processLocalData() {
+  if (!allDataset) return;
+  const filterDate  = document.getElementById('filterDate').value;
+  const filterInvID = document.getElementById('filterInvID').value.trim().toLowerCase();
+  
+  detailCache = {}; 
+  const buildCache = (arr, sys) => {
+    for (const d of (arr || [])) {
+      const k = sys + '_' + d.invDeliveryID;
+      if (!detailCache[k]) detailCache[k] = [];
+      detailCache[k].push(d);
+    }
+  };
+  buildCache(allDataset.tankDetail, 'Tank');
+  buildCache(allDataset.recDetail, 'Recripte');
+
+  updateStats(); 
+
+  let rowsToRender = [];
+
+  if (currentSystem === 'Tank' || currentSystem === 'Recripte') {
+    const mainArr = currentSystem === 'Tank' ? allDataset.tankMain : allDataset.recMain;
+    rowsToRender = (mainArr || []).filter(r => {
+      let pass = true;
+      if (filterDate && r.date !== filterDate) pass = false;
+      if (filterInvID && !r.invDeliveryID.toLowerCase().includes(filterInvID)) pass = false;
+      return pass;
+    });
+    renderStandardTable(rowsToRender);
+  } else {
+    // Summary
+    const summArr = [];
+    const tMain = allDataset.tankMain || [];
+    for (const t of tMain) {
+      if (filterDate && t.date !== filterDate) continue;
+      summArr.push({ type: 'Tank', date: t.date, rec: t });
+    }
+    
+    const rMain = allDataset.recMain || [];
+    const recByDate = {};
+    for (const r of rMain) {
+      if (filterDate && r.date !== filterDate) continue;
+      if (!recByDate[r.date]) recByDate[r.date] = [];
+      recByDate[r.date].push(r);
+    }
+    for (const date in recByDate) {
+      summArr.push({ type: 'Recripte', date: date, invoices: recByDate[date] });
+    }
+    
+    summArr.sort((a,b) => b.date.localeCompare(a.date));
+    renderSummaryTable(summArr);
+  }
+}
+
+// ============================================================
+//  RENDER STANDARD TABLE (Tank / Recripte)
+// ============================================================
+function renderStandardTable(rows) {
+  const tbody = document.getElementById('mainTbody');
+  document.getElementById('tableCount').textContent = `(${rows.length} รายการ)`;
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🔍</div><p>ไม่พบข้อมูลที่ตรงกับตัวกรอง</p></div></td></tr>`;
+    return;
+  }
+
+  const getQty = (items, lbl) => {
+    const f = items.find(it => it.product === lbl);
+    return f && f.qty ? `<strong>${f.qty}</strong>` : `<span style="color:var(--border)">-</span>`;
+  };
+
+  tbody.innerHTML = rows.map(r => {
+    const imgHTML = r.image
+      ? `<img src="${esc(r.image)}" class="img-thumb" alt="Invoice" onclick="openLightbox('${esc(r.image)}')" />`
+      : `<span class="no-image">—</span>`;
+    const sid = escAttr(r.invDeliveryID);
+    
+    const items = detailCache[currentSystem + '_' + r.invDeliveryID] || [];
+
+    return `
+      <tr>
+        <td><button class="expand-btn" onclick="toggleDetail('${esc(r.invDeliveryID)}', this)">▶</button></td>
+        <td style="display:none;"></td>
+        <td><strong>${esc(r.invDeliveryID)}</strong></td>
+        <td>${r.date || '—'}</td>
+        <td>${imgHTML}</td>
+        <td>${getQty(items, 'ไนโตรเจน 1.5 Q')}</td>
+        <td>${getQty(items, 'ออกซิเจน 1.5 Q')}</td>
+        <td>${getQty(items, 'ออกซิเจน 0.5 Q')}</td>
+        <td style="text-align:right;white-space:nowrap;">
+          <button class="btn btn-success btn-sm" onclick="openEditModal('${esc(r.invDeliveryID)}')">✏️ แก้ไข</button>
+          <button class="btn btn-danger btn-sm" style="margin-left:6px;" onclick="confirmDelete('${esc(r.invDeliveryID)}')">🗑️ ลบ</button>
+        </td>
+      </tr>
+      <tr class="detail-row"><td colspan="9">
+        <div class="detail-inner" id="detail-${sid}">
+          <div class="detail-table-wrap" id="detail-content-${sid}"></div>
+        </div>
+      </td></tr>`;
+  }).join('');
+}
+
+// ============================================================
+//  RENDER SUMMARY TABLE
+// ============================================================
+function renderSummaryTable(rows) {
+  const tbody = document.getElementById('mainTbody');
+  document.getElementById('tableCount').textContent = `(${rows.length} รายการ)`;
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🔍</div><p>ไม่พบข้อมูลที่ตรงกับตัวกรอง</p></div></td></tr>`;
+    return;
+  }
+
+  const getQtyTank = (items, lbl) => {
+    const f = items.find(it => it.product === lbl);
+    return f && f.qty ? `<strong>${f.qty}</strong>` : `<span style="color:var(--border)">-</span>`;
+  };
+
+  const getQtyRecGroup = (invoices, lbl) => {
+    let els = [];
+    for (const inv of invoices) {
+      const items = detailCache['Recripte_' + inv.invDeliveryID] || [];
+      const found = items.find(it => it.product === lbl);
+      if (found && found.qty) {
+        const invLink = inv.image ? `<a href="#" onclick="openLightbox('${esc(inv.image)}'); return false;" style="color:#2b6cb0;text-decoration:underline;white-space:nowrap;">(${esc(inv.invDeliveryID)})</a>` : `<span style="white-space:nowrap;">(${esc(inv.invDeliveryID)})</span>`;
+        els.push(`<div style="margin-bottom:4px;white-space:nowrap;"><strong>${found.qty}</strong> ${invLink}</div>`);
+      }
+    }
+    return els.length > 0 ? els.join('') : `<span style="color:var(--border)">-</span>`;
+  };
+
+  tbody.innerHTML = rows.map(r => {
+    if (r.type === 'Tank') {
+      const items = detailCache['Tank_' + r.rec.invDeliveryID] || [];
+      const imgHTML = r.rec.image ? `<img src="${esc(r.rec.image)}" class="img-thumb" style="width:40px;height:40px;" alt="Inv" onclick="openLightbox('${esc(r.rec.image)}')" />` : '<span class="no-image">—</span>';
+      return `<tr>
+        <td></td>
+        <td><span class="badge" style="background:var(--accent1);color:#000;">ส่งอัด</span></td>
+        <td style="display:none;"></td>
+        <td>${r.date || '—'}</td>
+        <td>${imgHTML}</td>
+        <td>${getQtyTank(items, 'ไนโตรเจน 1.5 Q')}</td>
+        <td>${getQtyTank(items, 'ออกซิเจน 1.5 Q')}</td>
+        <td>${getQtyTank(items, 'ออกซิเจน 0.5 Q')}</td>
+        <td style="display:none;"></td>
+      </tr>`;
+    } else {
+      return `<tr>
+         <td></td>
+         <td><span class="badge" style="background:#48bb78;color:#fff;">ส่งคืน</span></td>
+         <td style="display:none;"></td>
+         <td>${r.date || '—'}</td>
+         <td></td>
+         <td>${getQtyRecGroup(r.invoices, 'ไนโตรเจน 1.5 Q')}</td>
+         <td>${getQtyRecGroup(r.invoices, 'ออกซิเจน 1.5 Q')}</td>
+         <td>${getQtyRecGroup(r.invoices, 'ออกซิเจน 0.5 Q')}</td>
+         <td style="display:none;"></td>
+      </tr>`;
+    }
+  }).join('');
+}
+
+// ============================================================
+//  DETAIL ROW
+// ============================================================
+function toggleDetail(invID, btn) {
+  const el = document.getElementById('detail-' + escAttr(invID));
+  if (!el) return;
+  const isOpen = el.classList.toggle('open');
+  btn.textContent = isOpen ? '▼' : '▶';
+
+  if (isOpen) {
+    const items = detailCache[currentSystem + '_' + invID] || [];
+    const c = document.getElementById('detail-content-' + escAttr(invID));
+    if (!items.length) { c.innerHTML = '<p>ยังไม่มีรายการ</p>'; return; }
+    c.innerHTML = `<table class="detail-sub-table"><thead><tr><th>สินค้า</th><th>จำนวน (ถัง)</th><th>วันที่</th></tr></thead>
+      <tbody>${items.map(it => `<tr>
+        <td><span class="badge ${badgeClass(it.product)}">${esc(it.product)}</span></td>
+        <td><strong>${it.qty}</strong></td>
+        <td>${it.date || '—'}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+}
+
+function badgeClass(p) {
+  if (!p) return '';
+  if (p.includes('ไนโตรเจน')) return 'badge-n2';
+  if (p.includes('0.5'))       return 'badge-o2s';
+  if (p.includes('ออกซิเจน')) return 'badge-o2';
+  return '';
+}
+
+// ============================================================
+//  STATS
+// ============================================================
+function updateStats() {
+  if (!allDataset) return;
+  
+  if (currentSystem === 'Tank' || currentSystem === 'Recripte') {
+    const mainArr = currentSystem === 'Tank' ? allDataset.tankMain : allDataset.recMain;
+    const detArr  = currentSystem === 'Tank' ? allDataset.tankDetail : allDataset.recDetail;
+    
+    document.getElementById('statTotal').textContent = (mainArr || []).length;
+    let n2 =0, o2l=0, o2s=0;
+    for (const r of (detArr || [])) {
+      if (r.product.includes('ไนโตรเจน')) n2 += Number(r.qty) || 0;
+      else if (r.product.includes('0.5')) o2s += Number(r.qty) || 0;
+      else if (r.product.includes('ออกซิเจน')) o2l += Number(r.qty) || 0;
+    }
+    document.getElementById('statN2').textContent = n2;
+    document.getElementById('statO2L').textContent = o2l;
+    document.getElementById('statO2S').textContent = o2s;
+  } else {
+    const tMain = allDataset.tankMain || [];
+    document.getElementById('statTotal').textContent = tMain.length; 
+    
+    let tN2=0, tO2L=0, tO2S=0;
+    for (const r of (allDataset.tankDetail || [])) {
+      if (r.product.includes('ไนโตรเจน')) tN2 += Number(r.qty) || 0;
+      else if (r.product.includes('0.5')) tO2S += Number(r.qty) || 0;
+      else if (r.product.includes('ออกซิเจน')) tO2L += Number(r.qty) || 0;
+    }
+    let rN2=0, rO2L=0, rO2S=0;
+    for (const r of (allDataset.recDetail || [])) {
+      if (r.product.includes('ไนโตรเจน')) rN2 += Number(r.qty) || 0;
+      else if (r.product.includes('0.5')) rO2S += Number(r.qty) || 0;
+      else if (r.product.includes('ออกซิเจน')) rO2L += Number(r.qty) || 0;
+    }
+    
+    document.getElementById('statN2').textContent = Math.max(0, tN2 - rN2);
+    document.getElementById('statO2L').textContent = Math.max(0, tO2L - rO2L);
+    document.getElementById('statO2S').textContent = Math.max(0, tO2S - rO2S);
+  }
+}
+
+// ============================================================
+//  FILTERS
+// ============================================================
+function clearFilters() {
+  document.getElementById('filterDate').value  = '';
+  document.getElementById('filterInvID').value = '';
+  loadData();
+}
+
+// ============================================================
+//  MODAL — ADD
+// ============================================================
+function openAddModal() {
+  editingInvID = null;
+  imageBase64  = null;
+  imageFilename = '';
+  const isTank = (currentSystem === 'Tank');
+  document.getElementById('modalTitle').textContent = isTank ? '➕ เพิ่มใบส่งอัด' : '➕ เพิ่มใบรับเข้า';
+  document.getElementById('fldInvLabel').textContent = isTank ? 'เลขที่ใบส่งอัด *' : 'เลขที่ Invoice *';
+  document.getElementById('fldInvID').placeholder = isTank ? 'เช่น INV-2024-001' : 'เช่น REC-2024-001';
+  document.getElementById('fldInvID').value = '';
+  document.getElementById('fldDate').value  = getTodayStr();
+  document.getElementById('fldInvID').disabled = false;
+  clearQtyFields();
+  resetImageUI();
+  document.getElementById('existingImgWrap').innerHTML = '';
+  openModal();
+}
+
+// ============================================================
+//  MODAL — EDIT
+// ============================================================
+async function openEditModal(invID) {
+  const rec = allRecords.find(r => r.invDeliveryID === invID);
+  if (!rec) return;
+
+  editingInvID = invID;
+  imageBase64  = null;
+  imageFilename = '';
+  const isTank = (currentSystem === 'Tank');
+  document.getElementById('modalTitle').textContent = isTank ? '✏️ แก้ไขใบส่งอัด' : '✏️ แก้ไขใบรับเข้า';
+  document.getElementById('fldInvLabel').textContent = isTank ? 'เลขที่ใบส่งอัด *' : 'เลขที่ Invoice *';
+  document.getElementById('fldInvID').value    = rec.invDeliveryID;
+  document.getElementById('fldDate').value     = rec.date;
+  document.getElementById('fldInvID').disabled = true;
+  clearQtyFields();
+  resetImageUI();
+
+  const existingWrap = document.getElementById('existingImgWrap');
+  if (rec.image) {
+    existingWrap.innerHTML = `
+      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;">รูปภาพปัจจุบัน (อัปโหลดใหม่เพื่อเปลี่ยน)</p>
+      <img src="${esc(rec.image)}" style="max-height:120px;border-radius:8px;border:1px solid var(--border);cursor:pointer;"
+           onclick="openLightbox('${esc(rec.image)}')" />`;
+  } else {
+    existingWrap.innerHTML = '';
+  }
+
+  // Load details
+  let details = detailCache[invID];
+  if (!details) {
+    showLoading('โหลดรายการสินค้า...');
+    try {
+      details = await apiGet('getDetailList', { invDeliveryID: invID });
+      detailCache[invID] = details || [];
+    } catch (e) { details = []; }
+    hideLoading();
+  }
+  populateQtyFromDetails(details);
+  openModal();
+}
+
+function populateQtyFromDetails(details) {
+  clearQtyFields();
+  for (const d of (details || [])) {
+    const k = labelToKey(d.product);
+    if (k) document.getElementById('qty-' + k).value = d.qty;
+  }
+}
+
+function clearQtyFields() {
+  ['N2','O2L','O2S'].forEach(k => { document.getElementById('qty-'+k).value = ''; });
+}
+
+// ============================================================
+//  SAVE
+// ============================================================
+async function saveRecord() {
+  const invID = editingInvID || document.getElementById('fldInvID').value.trim();
+  const date  = document.getElementById('fldDate').value;
+
+  if (!invID) { showToast(currentSystem === 'Tank' ? 'กรุณากรอกเลขที่ใบส่งอัด' : 'กรุณากรอกเลขที่ Invoice', 'error'); return; }
+  if (!date)  { showToast('กรุณาเลือกวันที่', 'error'); return; }
+
+  const details = Object.entries(PRODUCT_LABEL_MAP)
+    .map(([k, label]) => ({ product: label, qty: document.getElementById('qty-' + k).value }))
+    .filter(d => d.qty !== '' && d.qty !== null);
+
+  if (!details.length) { showToast('กรุณากรอกจำนวนสินค้าอย่างน้อย 1 รายการ', 'error'); return; }
+
+  document.getElementById('saveBtn').disabled = true;
+  showLoading('กำลังบันทึก...');
+
+  try {
+    // Save header
+    const r1 = await apiPost({
+      action: 'saveTank',
+      invDeliveryID: invID,
+      date: date,
+      imageData: imageBase64 || '',
+      imageFilename: imageFilename || 'invoice.jpg'
+    });
+    if (r1 && r1.error) throw new Error(r1.error);
+
+    // Save details
+    const r2 = await apiPost({
+      action: 'saveDetails',
+      invDeliveryID: invID,
+      date: date,
+      details: details
+    });
+    if (r2 && r2.error) throw new Error(r2.error);
+
+    showToast('บันทึกสำเร็จ ✓', 'success');
+    closeModal();
+    loadData(true);
+  } catch (err) {
+    onError(err);
+  } finally {
+    document.getElementById('saveBtn').disabled = false;
+  }
+}
+
+// ============================================================
+//  DELETE
+// ============================================================
+function confirmDelete(invID) {
+  const isTank = (currentSystem === 'Tank');
+  const typeText = isTank ? 'ใบส่งอัด' : 'ใบรับเข้า';
+  document.getElementById('confirmText').textContent =
+    `ลบ${typeText} "${invID}" และรายการทั้งหมดที่เกี่ยวข้อง?`;
+  document.getElementById('confirmOkBtn').onclick = async () => {
+    showLoading('กำลังลบข้อมูล...');
+    try {
+      const r = await apiPost({ action: 'deleteTank', invDeliveryID: invID });
+      if (r && r.error) throw new Error(r.error);
+      showToast('ลบข้อมูลสำเร็จ', 'success');
+      closeConfirm();
+      loadData(true);
+    } catch (err) {
+      onError(err);
+    }
+  };
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
+function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('open'); }
+
+// ============================================================
+//  IMAGE
+// ============================================================
+function handleImageSelect(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('ขนาดไฟล์เกิน 5 MB', 'error'); return; }
+  imageFilename = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    imageBase64 = e.target.result;
+    document.getElementById('imgPreview').src = imageBase64;
+    document.getElementById('uploadPlaceholder').style.display  = 'none';
+    document.getElementById('imgPreviewWrap').style.display = 'inline-block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage(evt) {
+  evt.stopPropagation();
+  imageBase64 = null;
+  imageFilename = '';
+  resetImageUI();
+}
+
+function resetImageUI() {
+  document.getElementById('imgFileInput').value = '';
+  document.getElementById('imgPreview').src = '';
+  document.getElementById('uploadPlaceholder').style.display  = 'block';
+  document.getElementById('imgPreviewWrap').style.display = 'none';
+}
+
+function setupDragDrop() {
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      handleImageSelect({ target: { files: [file] } });
+    }
+  });
+}
+
+// ============================================================
+//  LIGHTBOX
+// ============================================================
+function openLightbox(url) {
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeLightbox(); closeModal(); closeConfirm(); }
+});
+
+// ============================================================
+//  MODAL OPEN / CLOSE
+// ============================================================
+function openModal()  { document.getElementById('mainModal').classList.add('open'); }
+function closeModal() {
+  document.getElementById('mainModal').classList.remove('open');
+  document.getElementById('saveBtn').disabled = false;
+}
+
+// ============================================================
+//  LOADING / TOAST / ERROR
+// ============================================================
+function showLoading(t) {
+  document.getElementById('loadingText').textContent = t || 'กำลังโหลด...';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+
+function showToast(msg, type = 'info') {
+  hideLoading();
+  const wrap = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  t.innerHTML = `<span>${icons[type] || 'ℹ️'}</span> ${msg}`;
+  wrap.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+function onError(err) {
+  hideLoading();
+  document.getElementById('saveBtn').disabled = false;
+  showToast('เกิดข้อผิดพลาด: ' + (err.message || err), 'error');
+  console.error(err);
+}
+
+// ============================================================
+//  UTILS
+// ============================================================
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escAttr(s) {
+  return String(s || '').replace(/[^a-zA-Z0-9_-]/g, c => '_' + c.charCodeAt(0) + '_');
+}
+</script>
+</body>
+</html>
