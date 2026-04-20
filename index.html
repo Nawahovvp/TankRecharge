@@ -497,7 +497,7 @@
 
   <div class="tabs-wrapper">
     <button class="tab-btn active" id="tab-Tank" onclick="switchSystem('Tank')">🚀 ระบบส่งอัดท่อ</button>
-    <button class="tab-btn" id="tab-Recripte" onclick="switchSystem('Recripte')">📥 ระบบรับเข้าสำเร็จ</button>
+    <button class="tab-btn" id="tab-Recripte" onclick="switchSystem('Recripte')">📥 ระบบส่งคืนท่อ</button>
     <button class="tab-btn" id="tab-Summary" onclick="switchSystem('Summary')">📊 สรุปข้อมูล</button>
   </div>
 
@@ -620,8 +620,8 @@ function switchSystem(sys) {
   const isSumm = (sys === 'Summary');
   const isRec  = (sys === 'Recripte');
   
-  document.getElementById('mainTitle').textContent = isTank ? 'ระบบส่งอัดท่อ' : isSumm ? 'สรุปข้อมูล / ยอดค้างส่ง' : 'ระบบรับเข้าสำเร็จ';
-  document.getElementById('subTitle').textContent = isTank ? 'บันทึกและติดตามการส่งอัดท่อ ไนโตรเจน / ออกซิเจน' : isSumm ? 'เปรียบเทียบยอดค้างส่งและไทม์ไลน์ล่าสุด' : 'บันทึกและติดตามการรับเข้าท่อสำเร็จจาก Supplier';
+  document.getElementById('mainTitle').textContent = isTank ? 'ระบบส่งอัดท่อ' : isSumm ? 'สรุปข้อมูล / ยอดค้างส่ง' : 'ระบบส่งคืนท่อ';
+  document.getElementById('subTitle').textContent = isTank ? 'บันทึกและติดตามการส่งอัดท่อ ไนโตรเจน / ออกซิเจน' : isSumm ? 'เปรียบเทียบยอดค้างส่งและไทม์ไลน์ล่าสุด' : 'บันทึกและติดตามการส่งคืนท่อสำเร็จ';
   
   document.getElementById('addBtn').style.display = isSumm ? 'none' : 'inline-flex';
   
@@ -629,12 +629,12 @@ function switchSystem(sys) {
   document.getElementById('thManage').style.display = isSumm ? 'none' : 'table-cell';
 
   if (!isSumm) {
-    document.getElementById('addBtn').innerHTML = isTank ? '➕ เพิ่มใบส่งอัด' : '➕ เพิ่มใบรับเข้า';
+    document.getElementById('addBtn').innerHTML = isTank ? '➕ เพิ่มใบส่งอัด' : '➕ เพิ่มใบส่งคืน';
     document.getElementById('thInv').textContent = isTank ? 'เลขที่ใบส่งอัด' : 'เลขที่ Invoice';
   }
   
-  document.getElementById('tableTitleText').textContent = isTank ? 'รายการส่งอัดท่อ' : isSumm ? 'ไทม์ไลน์ล่าสุด' : 'รายการรับเข้าสำเร็จ';
-  document.getElementById('statLabel1').textContent = isTank ? 'ใบส่งอัดทั้งหมด' : isSumm ? 'จำนวนใบส่งอัด' : 'ใบรับเข้าทั้งหมด';
+  document.getElementById('tableTitleText').textContent = isTank ? 'รายการส่งอัดท่อ' : isSumm ? 'ไทม์ไลน์ล่าสุด' : 'รายการส่งคืนท่อ';
+  document.getElementById('statLabel1').textContent = isTank ? 'ใบส่งอัดทั้งหมด' : isSumm ? 'จำนวนใบส่งอัด' : 'ใบส่งคืนทั้งหมด';
   
   document.getElementById('lblN2').textContent = isSumm ? 'N₂ 1.5Q ค้างส่ง' : 'N₂ 1.5Q รวม';
   document.getElementById('lblO2L').textContent = isSumm ? 'O₂ 1.5Q ค้างส่ง' : 'O₂ 1.5Q รวม';
@@ -728,6 +728,18 @@ function parseDateStr(str) {
   const d = new Date(str);
   if (!isNaN(d.getTime())) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  return str;
+}
+
+function formatDisplayDate(str) {
+  if (!str) return '—';
+  // If it's already in DD/MM/YYYY, return it
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
+  // If it's in YYYY-MM-DD, convert to DD/MM/YYYY
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    return `${match[3]}/${match[2]}/${match[1]}`;
   }
   return str;
 }
@@ -870,7 +882,7 @@ function renderStandardTable(rows) {
         <td><button class="expand-btn" onclick="toggleDetail('${esc(r.invDeliveryID)}', this)">▶</button></td>
         <td style="display:none;"></td>
         <td><strong>${esc(r.invDeliveryID)}</strong></td>
-        <td>${r.date || '—'}</td>
+        <td>${formatDisplayDate(r.date)}</td>
         <td>${imgHTML}</td>
         <td>${getQty(items, 'ไนโตรเจน 1.5 Q')}</td>
         <td>${getQty(items, 'ออกซิเจน 1.5 Q')}</td>
@@ -910,15 +922,20 @@ function renderSummaryTable(rows) {
 
   const getQtyRecGroup = (invoices, lbl) => {
     let els = [];
+    const k = labelToKey(lbl);
+    const cls = k === 'N2' ? 'badge-n2' : k === 'O2L' ? 'badge-o2' : 'badge-o2s';
     for (const inv of invoices) {
       const items = detailCache['Recripte_' + inv.invDeliveryID] || [];
       const found = items.find(it => it.product === lbl);
       if (found && found.qty) {
-        const invLink = inv.image ? `<a href="#" onclick="openLightbox('${esc(inv.image)}'); return false;" style="color:#2b6cb0;text-decoration:underline;white-space:nowrap;">(${esc(inv.invDeliveryID)})</a>` : `<span style="white-space:nowrap;">(${esc(inv.invDeliveryID)})</span>`;
-        els.push(`<div style="margin-bottom:4px;white-space:nowrap;"><strong>${found.qty}</strong> ${invLink}</div>`);
+        const invIDText = `(${esc(inv.invDeliveryID)})`;
+        const content = inv.image 
+           ? `${found.qty} <a href="#" onclick="openLightbox('${esc(inv.image)}'); return false;" style="color:inherit;text-decoration:underline;">${invIDText}</a>`
+           : `${found.qty} ${invIDText}`;
+        els.push(`<div style="margin-bottom:4px; text-align:center;"><span class="badge ${cls}">${content}</span></div>`);
       }
     }
-    return els.length > 0 ? els.join('') : `<span style="color:var(--border)">-</span>`;
+    return els.length > 0 ? els.join('') : `<div style="text-align:center; color:var(--border)">-</div>`;
   };
 
   tbody.innerHTML = rows.map(r => {
@@ -929,11 +946,11 @@ function renderSummaryTable(rows) {
         <td></td>
         <td><span class="badge" style="background:var(--accent1);color:#000;">ส่งอัด</span></td>
         <td><strong>${esc(r.rec.invDeliveryID)}</strong></td>
-        <td>${r.date || '—'}</td>
+        <td>${formatDisplayDate(r.date)}</td>
         <td>${imgHTML}</td>
-        <td>${getQtyTank(items, 'ไนโตรเจน 1.5 Q')}</td>
-        <td>${getQtyTank(items, 'ออกซิเจน 1.5 Q')}</td>
-        <td>${getQtyTank(items, 'ออกซิเจน 0.5 Q')}</td>
+        <td style="text-align:center;">${getQtyTank(items, 'ไนโตรเจน 1.5 Q')}</td>
+        <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 1.5 Q')}</td>
+        <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 0.5 Q')}</td>
         <td style="display:none;"></td>
       </tr>`;
     } else {
@@ -941,11 +958,11 @@ function renderSummaryTable(rows) {
          <td></td>
          <td><span class="badge" style="background:#48bb78;color:#fff;">ส่งคืน</span></td>
          <td><span style="color:var(--text-dim);">—</span></td>
-         <td>${r.date || '—'}</td>
+         <td>${formatDisplayDate(r.date)}</td>
          <td></td>
-         <td>${getQtyRecGroup(r.invoices, 'ไนโตรเจน 1.5 Q')}</td>
-         <td>${getQtyRecGroup(r.invoices, 'ออกซิเจน 1.5 Q')}</td>
-         <td>${getQtyRecGroup(r.invoices, 'ออกซิเจน 0.5 Q')}</td>
+         <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ไนโตรเจน 1.5 Q')}</td>
+         <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 1.5 Q')}</td>
+         <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 0.5 Q')}</td>
          <td style="display:none;"></td>
       </tr>`;
     }
@@ -969,7 +986,7 @@ function toggleDetail(invID, btn) {
       <tbody>${items.map(it => `<tr>
         <td><span class="badge ${badgeClass(it.product)}">${esc(it.product)}</span></td>
         <td><strong>${it.qty}</strong></td>
-        <td>${it.date || '—'}</td>
+        <td>${formatDisplayDate(it.date)}</td>
       </tr>`).join('')}</tbody></table>`;
   }
 }
@@ -1044,7 +1061,7 @@ function openAddModal() {
   imageBase64  = null;
   imageFilename = '';
   const isTank = (currentSystem === 'Tank');
-  document.getElementById('modalTitle').textContent = isTank ? '➕ เพิ่มใบส่งอัด' : '➕ เพิ่มใบรับเข้า';
+  document.getElementById('modalTitle').textContent = isTank ? '➕ เพิ่มใบส่งอัด' : '➕ เพิ่มใบส่งคืน';
   document.getElementById('fldInvLabel').textContent = isTank ? 'เลขที่ใบส่งอัด *' : 'เลขที่ Invoice *';
   document.getElementById('fldInvID').placeholder = isTank ? 'เช่น INV-2024-001' : 'เช่น REC-2024-001';
   document.getElementById('fldInvID').value = '';
@@ -1069,7 +1086,7 @@ async function openEditModal(invID) {
   editingInvID = invID;
   imageBase64  = null;
   imageFilename = '';
-  document.getElementById('modalTitle').textContent = isTank ? '✏️ แก้ไขใบส่งอัด' : '✏️ แก้ไขใบรับเข้า';
+  document.getElementById('modalTitle').textContent = isTank ? '✏️ แก้ไขใบส่งอัด' : '✏️ แก้ไขใบส่งคืน';
   document.getElementById('fldInvLabel').textContent = isTank ? 'เลขที่ใบส่งอัด *' : 'เลขที่ Invoice *';
   document.getElementById('fldInvID').value    = rec.invDeliveryID;
   document.getElementById('fldDate').value     = rec.date;
@@ -1167,7 +1184,7 @@ async function saveRecord() {
 // ============================================================
 function confirmDelete(invID) {
   const isTank = (currentSystem === 'Tank');
-  const typeText = isTank ? 'ใบส่งอัด' : 'ใบรับเข้า';
+  const typeText = isTank ? 'ใบส่งอัด' : 'ใบส่งคืน';
   document.getElementById('confirmText').textContent =
     `ลบ${typeText} "${invID}" และรายการทั้งหมดที่เกี่ยวข้อง?`;
   document.getElementById('confirmOkBtn').onclick = async () => {
