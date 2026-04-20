@@ -621,7 +621,6 @@ function switchSystem(sys) {
   document.getElementById('filterInvID').style.display = isSumm ? 'none' : 'inline-block';
   
   document.getElementById('thStatus').style.display = isSumm ? 'table-cell' : 'none';
-  document.getElementById('thInv').style.display = isSumm ? 'none' : 'table-cell';
   document.getElementById('thManage').style.display = isSumm ? 'none' : 'table-cell';
 
   if (!isSumm) {
@@ -687,15 +686,82 @@ function debounceLoad() {
 }
 
 // ============================================================
-//  LOAD & PROCESS DATA
+//  LOAD & PROCESS DATA (VIA OPENSHEET API)
 // ============================================================
+const SHEET_ID = '17P5h9MaiRrJpklQb7osAtvHdzrJ1xkqaf8T63kUkOeE';
+const OPENSHEET_URL = `https://opensheet.elk.sh/${SHEET_ID}`;
+
+async function fetchOpensheet(sheetName) {
+  try {
+    const res = await fetch(`${OPENSHEET_URL}/${sheetName}`);
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (e) {
+    console.error("Opensheet Error:", e);
+    return [];
+  }
+}
+
+function parseDateStr(str) {
+  if (!str) return '';
+  str = String(str).trim();
+  
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  
+  let datePart = str.split(',')[0].trim();
+  let parts = datePart.split('/');
+  if (parts.length === 3) {
+    let day = parts[0].padStart(2, '0');
+    let month = parts[1].padStart(2, '0');
+    let year = parts[2];
+    return `${year}-${month}-${day}`;
+  }
+  
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  return str;
+}
+
 async function loadData(forceRefresh = false) {
   if (!allDataset || forceRefresh) {
-    showLoading('กำลังโหลดข้อมูลทั้งหมด...');
+    showLoading('กำลังโหลดข้อมูลทั้งหมด (Opensheet API)...');
     try {
-      const resp = await apiGet('getAllData');
-      if (resp && resp.error) throw new Error(resp.error);
-      allDataset = resp;
+      const [tMain, tDet, rMain, rDet] = await Promise.all([
+        fetchOpensheet('Tank'),
+        fetchOpensheet('Detail_Tank'),
+        fetchOpensheet('Recripte_Tank'),
+        fetchOpensheet('Recripte_Detail_Tank')
+      ]);
+
+      allDataset = { 
+        tankMain: (Array.isArray(tMain) ? tMain : []).map(r => ({
+          invDeliveryID: String(r.InvDeliveryID || '').trim(),
+          date: parseDateStr(r.Date),
+          image: fixGDriveUrl(r.image)
+        })).filter(x => x.invDeliveryID),
+        
+        tankDetail: (Array.isArray(tDet) ? tDet : []).map(r => ({
+          invDeliveryID: String(r.InvDeliveryID || '').trim(),
+          date: parseDateStr(r.Date),
+          product: String(r.Product || '').trim(),
+          qty: Number(r.Qty) || 0
+        })).filter(x => x.invDeliveryID),
+        
+        recMain: (Array.isArray(rMain) ? rMain : []).map(r => ({
+          invDeliveryID: String(r.InvoiceID || '').trim(),
+          date: parseDateStr(r.Date),
+          image: fixGDriveUrl(r.image)
+        })).filter(x => x.invDeliveryID),
+        
+        recDetail: (Array.isArray(rDet) ? rDet : []).map(r => ({
+          invDeliveryID: String(r.InvoiceID || '').trim(),
+          date: parseDateStr(r.Date),
+          product: String(r.Product || '').trim(),
+          qty: Number(r.Qty) || 0
+        })).filter(x => x.invDeliveryID)
+      };
     } catch (err) {
       onError(err);
       return;
@@ -730,7 +796,12 @@ function processLocalData() {
     const mainArr = currentSystem === 'Tank' ? allDataset.tankMain : allDataset.recMain;
     rowsToRender = (mainArr || []).filter(r => {
       let pass = true;
-      if (filterDate && r.date !== filterDate) pass = false;
+      if (filterDate) {
+        // Robust date comparison: normalize both to YYYY-MM-DD
+        const rowDate = parseDateStr(r.date);
+        const targetDate = parseDateStr(filterDate);
+        if (rowDate !== targetDate) pass = false;
+      }
       if (filterInvID && !r.invDeliveryID.toLowerCase().includes(filterInvID)) pass = false;
       return pass;
     });
@@ -740,14 +811,18 @@ function processLocalData() {
     const summArr = [];
     const tMain = allDataset.tankMain || [];
     for (const t of tMain) {
-      if (filterDate && t.date !== filterDate) continue;
+      if (filterDate) {
+        if (parseDateStr(t.date) !== parseDateStr(filterDate)) continue;
+      }
       summArr.push({ type: 'Tank', date: t.date, rec: t });
     }
     
     const rMain = allDataset.recMain || [];
     const recByDate = {};
     for (const r of rMain) {
-      if (filterDate && r.date !== filterDate) continue;
+      if (filterDate) {
+        if (parseDateStr(r.date) !== parseDateStr(filterDate)) continue;
+      }
       if (!recByDate[r.date]) recByDate[r.date] = [];
       recByDate[r.date].push(r);
     }
@@ -779,7 +854,7 @@ function renderStandardTable(rows) {
 
   tbody.innerHTML = rows.map(r => {
     const imgHTML = r.image
-      ? `<img src="${esc(r.image)}" class="img-thumb" alt="Invoice" onclick="openLightbox('${esc(r.image)}')" />`
+      ? `<img src="${esc(r.image)}" class="img-thumb" alt="Invoice" referrerpolicy="no-referrer" onclick="openLightbox(this.src)" />`
       : `<span class="no-image">—</span>`;
     const sid = escAttr(r.invDeliveryID);
     
@@ -841,11 +916,11 @@ function renderSummaryTable(rows) {
   tbody.innerHTML = rows.map(r => {
     if (r.type === 'Tank') {
       const items = detailCache['Tank_' + r.rec.invDeliveryID] || [];
-      const imgHTML = r.rec.image ? `<img src="${esc(r.rec.image)}" class="img-thumb" style="width:40px;height:40px;" alt="Inv" onclick="openLightbox('${esc(r.rec.image)}')" />` : '<span class="no-image">—</span>';
+      const imgHTML = r.rec.image ? `<img src="${esc(r.rec.image)}" class="img-thumb" style="width:40px;height:40px;" alt="Inv" referrerpolicy="no-referrer" onclick="openLightbox(this.src)" />` : '<span class="no-image">—</span>';
       return `<tr>
         <td></td>
         <td><span class="badge" style="background:var(--accent1);color:#000;">ส่งอัด</span></td>
-        <td style="display:none;"></td>
+        <td><strong>${esc(r.rec.invDeliveryID)}</strong></td>
         <td>${r.date || '—'}</td>
         <td>${imgHTML}</td>
         <td>${getQtyTank(items, 'ไนโตรเจน 1.5 Q')}</td>
@@ -857,7 +932,7 @@ function renderSummaryTable(rows) {
       return `<tr>
          <td></td>
          <td><span class="badge" style="background:#48bb78;color:#fff;">ส่งคืน</span></td>
-         <td style="display:none;"></td>
+         <td><span style="color:var(--text-dim);">—</span></td>
          <td>${r.date || '—'}</td>
          <td></td>
          <td>${getQtyRecGroup(r.invoices, 'ไนโตรเจน 1.5 Q')}</td>
@@ -975,13 +1050,15 @@ function openAddModal() {
 //  MODAL — EDIT
 // ============================================================
 async function openEditModal(invID) {
-  const rec = allRecords.find(r => r.invDeliveryID === invID);
+  if (!allDataset) return;
+  const isTank = (currentSystem === 'Tank');
+  const mainArr = isTank ? allDataset.tankMain : allDataset.recMain;
+  const rec = (mainArr || []).find(r => r.invDeliveryID === invID);
   if (!rec) return;
 
   editingInvID = invID;
   imageBase64  = null;
   imageFilename = '';
-  const isTank = (currentSystem === 'Tank');
   document.getElementById('modalTitle').textContent = isTank ? '✏️ แก้ไขใบส่งอัด' : '✏️ แก้ไขใบรับเข้า';
   document.getElementById('fldInvLabel').textContent = isTank ? 'เลขที่ใบส่งอัด *' : 'เลขที่ Invoice *';
   document.getElementById('fldInvID').value    = rec.invDeliveryID;
@@ -995,13 +1072,13 @@ async function openEditModal(invID) {
     existingWrap.innerHTML = `
       <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;">รูปภาพปัจจุบัน (อัปโหลดใหม่เพื่อเปลี่ยน)</p>
       <img src="${esc(rec.image)}" style="max-height:120px;border-radius:8px;border:1px solid var(--border);cursor:pointer;"
-           onclick="openLightbox('${esc(rec.image)}')" />`;
+           referrerpolicy="no-referrer" onclick="openLightbox(this.src)" />`;
   } else {
     existingWrap.innerHTML = '';
   }
 
   // Load details
-  let details = detailCache[invID];
+  let details = detailCache[currentSystem + '_' + invID];
   if (!details) {
     showLoading('โหลดรายการสินค้า...');
     try {
@@ -1201,6 +1278,18 @@ function esc(s) {
 }
 function escAttr(s) {
   return String(s || '').replace(/[^a-zA-Z0-9_-]/g, c => '_' + c.charCodeAt(0) + '_');
+}
+
+function fixGDriveUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  url = url.trim();
+  // Match common Drive URL patterns to extract ID
+  const match = url.match(/id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    // sz=w1000 provides high resolution while being more reliable for <img> tags
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+  }
+  return url;
 }
 </script>
 </body>
