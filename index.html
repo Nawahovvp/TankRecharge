@@ -137,9 +137,9 @@
       transition: var(--transition);
     }
     .stat-card:hover { border-color: rgba(99,179,237,0.2); transform: translateY(-2px); }
-    .stat-icon { font-size: 28px; }
-    .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-    .stat-value { font-size: 1.55rem; font-weight: 700; color: var(--text-primary); line-height: 1; margin-top: 3px; }
+    .stat-icon { font-size: 32px; }
+    .stat-label { font-size: 1.15rem; color: var(--text-primary); font-weight: 700; letter-spacing: .02em; }
+    .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--accent1); line-height: 1; margin-top: 6px; }
 
     /* ===== TABLE CARD ===== */
     .table-card {
@@ -482,16 +482,63 @@
   </div>
 </div>
 
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginOverlay" style="background: var(--bg-primary);">
+  <div class="modal-box" style="max-width: 400px; margin: auto; transform: none; box-shadow: var(--shadow-card);">
+    <div class="modal-head">
+      <h2>🔑 เข้าสู่ระบบ</h2>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label for="loginUsername">ผู้ใช้ (IDUser)</label>
+        <input type="text" id="loginUsername" placeholder="กรอก IDUser" onkeydown="if(event.key === 'Enter') document.getElementById('loginPassword').focus()" />
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">รหัสผ่าน</label>
+        <input type="password" id="loginPassword" placeholder="****" onkeydown="if(event.key === 'Enter') submitLogin()" />
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="submitLogin()" style="width: 100%; justify-content: center;">เข้าสู่ระบบ</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingOverlay">
+  <div class="modal-box" style="max-width: 450px;">
+    <div class="modal-head">
+      <h2>⚙️ ตั้งค่า / ข้อมูลผู้ใช้</h2>
+      <button class="modal-close" onclick="closeSettingModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="userInfoDisplay" style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <p><strong>IDUser:</strong> <span id="infoIDUser">—</span></p>
+        <p><strong>Name:</strong> <span id="infoName">—</span></p>
+        <p><strong>Plant:</strong> <span id="infoPlant">—</span></p>
+        <p><strong>PlantCode:</strong> <span id="infoPlantCode">—</span></p>
+        <p><strong>Auth:</strong> <span id="infoAuth">—</span></p>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeSettingModal()">ปิด</button>
+      <button class="btn btn-danger" onclick="logout()">ออกจากระบบ</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== APP ===== -->
-<div class="app-wrapper">
+<div class="app-wrapper" id="appWrapper" style="display: none;">
   <header class="app-header">
     <div class="header-icon">🛢️</div>
     <div class="header-text">
       <h1 id="mainTitle">ระบบส่งอัดท่อ</h1>
       <p id="subTitle">บันทึกและติดตามการส่งอัดท่อ ไนโตรเจน / ออกซิเจน</p>
     </div>
-    <div class="header-actions">
+    <div class="header-actions" style="display: flex; align-items: center; gap: 10px;">
+      <span id="headerUserInfo" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; display: none;"></span>
       <button class="btn btn-primary" id="addBtn" onclick="openAddModal()">➕ เพิ่มใบส่งอัด</button>
+      <button class="btn btn-secondary" id="settingsBtn" title="ตั้งค่า / เข้าสู่ระบบ" onclick="openLoginSetting()">⚙️</button>
     </div>
   </header>
 
@@ -630,8 +677,9 @@ function switchSystem(sys) {
 
   if (!isSumm) {
     document.getElementById('addBtn').innerHTML = isTank ? '➕ เพิ่มใบส่งอัด' : '➕ เพิ่มใบส่งคืน';
-    document.getElementById('thInv').textContent = isTank ? 'เลขที่ใบส่งอัด' : 'เลขที่ Invoice';
   }
+  document.getElementById('thInv').textContent = isRec ? 'เลขที่ Invoice' : 'เลขที่ใบส่งอัด';
+
   
   document.getElementById('tableTitleText').textContent = isTank ? 'รายการส่งอัดท่อ' : isSumm ? 'ไทม์ไลน์ล่าสุด' : 'รายการส่งคืนท่อ';
   document.getElementById('statLabel1').textContent = isTank ? 'ใบส่งอัดทั้งหมด' : isSumm ? 'จำนวนใบส่งอัด' : 'ใบส่งคืนทั้งหมด';
@@ -817,7 +865,12 @@ function processLocalData() {
       const items = detailCache[currentSystem + '_' + r.invDeliveryID] || [];
       return items.some(it => it.product === filterProduct && it.qty > 0);
     });
+    // Sort rows by date descending for the Return tab
+    if (currentSystem === 'Recripte') {
+      rowsToRender.sort((a, b) => b.date.localeCompare(a.date));
+    }
     renderStandardTable(rowsToRender);
+
   } else {
     // Summary
     const summArr = [];
@@ -877,6 +930,14 @@ function renderStandardTable(rows) {
     
     const items = detailCache[currentSystem + '_' + r.invDeliveryID] || [];
 
+    let manageHTML = '-';
+    if (currentUser && String(currentUser.Auth).trim().toLowerCase() === 'admin') {
+      manageHTML = `
+        <button class="btn btn-success btn-sm" onclick="openEditModal('${esc(r.invDeliveryID)}')">✏️ แก้ไข</button>
+        <button class="btn btn-danger btn-sm" style="margin-left:6px;" onclick="confirmDelete('${esc(r.invDeliveryID)}')">🗑️ ลบ</button>
+      `;
+    }
+
     return `
       <tr>
         <td><button class="expand-btn" onclick="toggleDetail('${esc(r.invDeliveryID)}', this)">▶</button></td>
@@ -888,8 +949,7 @@ function renderStandardTable(rows) {
         <td>${getQty(items, 'ออกซิเจน 1.5 Q')}</td>
         <td>${getQty(items, 'ออกซิเจน 0.5 Q')}</td>
         <td style="text-align:right;white-space:nowrap;">
-          <button class="btn btn-success btn-sm" onclick="openEditModal('${esc(r.invDeliveryID)}')">✏️ แก้ไข</button>
-          <button class="btn btn-danger btn-sm" style="margin-left:6px;" onclick="confirmDelete('${esc(r.invDeliveryID)}')">🗑️ ลบ</button>
+          ${manageHTML}
         </td>
       </tr>
       <tr class="detail-row"><td colspan="9">
@@ -1318,6 +1378,136 @@ function fixGDriveUrl(url) {
   }
   return url;
 }
+
+// ============================================================
+//  AUTH LOGIC
+// ============================================================
+let currentUser = null;
+
+function initAuth() {
+  const saved = localStorage.getItem('tankRechargeUser');
+  if (saved) {
+    try {
+      currentUser = JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse user', e);
+      currentUser = null;
+    }
+  } else {
+    currentUser = null;
+  }
+  updateAuthUI();
+}
+
+function updateAuthUI() {
+  const infoSpan = document.getElementById('headerUserInfo');
+  const appWrap = document.getElementById('appWrapper');
+  const loginOverlay = document.getElementById('loginOverlay');
+  
+  if (currentUser) {
+    infoSpan.textContent = `👤 ${currentUser.Name} (${currentUser.Plant})`;
+    infoSpan.style.display = 'inline';
+    appWrap.style.display = 'block';
+    loginOverlay.classList.remove('open');
+  } else {
+    infoSpan.style.display = 'none';
+    appWrap.style.display = 'none';
+    loginOverlay.classList.add('open');
+  }
+  
+  // Re-render table if data is already loaded
+  if (allDataset) {
+    processLocalData();
+  }
+}
+
+function openLoginSetting() {
+  if (currentUser) {
+    // Show settings
+    document.getElementById('infoIDUser').textContent = currentUser.IDUser || '—';
+    document.getElementById('infoName').textContent = currentUser.Name || '—';
+    document.getElementById('infoPlant').textContent = currentUser.Plant || '—';
+    document.getElementById('infoPlantCode').textContent = currentUser.PlantCode || '—';
+    document.getElementById('infoAuth').textContent = currentUser.Auth || '—';
+    document.getElementById('settingOverlay').classList.add('open');
+  } else {
+    // Show login
+    document.getElementById('loginOverlay').classList.add('open');
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+  }
+}
+
+function closeLoginModal() {
+  document.getElementById('loginOverlay').classList.remove('open');
+}
+
+function closeSettingModal() {
+  document.getElementById('settingOverlay').classList.remove('open');
+}
+
+async function submitLogin() {
+  const user = document.getElementById('loginUsername').value.trim();
+  const pass = document.getElementById('loginPassword').value.trim();
+  if (!user || !pass) {
+    showToast('กรุณากรอกผู้ใช้และรหัสผ่าน', 'error');
+    return;
+  }
+  
+  showLoading('กำลังเข้าสู่ระบบ...');
+  try {
+    const res = await fetch('https://opensheet.elk.sh/1eqVoLsZxGguEbRCC5rdI4iMVtQ7CK4T3uXRdx8zE3uw/UserOxigen');
+    if (!res.ok) throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูลผู้ใช้ได้');
+    const usersData = await res.json();
+    
+    let foundUser = null;
+    for (const row of usersData) {
+      if (String(row.IDUser || '').trim() === user) {
+        foundUser = row;
+        break;
+      }
+    }
+    
+    if (foundUser) {
+      const expectedPass = String(foundUser.IDUser).trim().slice(-4);
+      if (pass === expectedPass) {
+        currentUser = {
+          IDUser: String(foundUser.IDUser || ''),
+          Name: String(foundUser.Name || ''),
+          Plant: String(foundUser.Plant || ''),
+          PlantCode: String(foundUser.PlantCode || ''),
+          Auth: String(foundUser.Auth || '')
+        };
+        localStorage.setItem('tankRechargeUser', JSON.stringify(currentUser));
+        updateAuthUI();
+        closeLoginModal();
+        showToast('เข้าสู่ระบบสำเร็จ', 'success');
+      } else {
+        showToast('รหัสผ่านไม่ถูกต้อง', 'error');
+      }
+    } else {
+      showToast('ไม่พบรหัสผู้ใช้งานนี้ในระบบ', 'error');
+    }
+  } catch (err) {
+    onError(err);
+  } finally {
+    hideLoading();
+  }
+}
+
+function logout() {
+  currentUser = null;
+  localStorage.removeItem('tankRechargeUser');
+  updateAuthUI();
+  closeSettingModal();
+  showToast('ออกจากระบบแล้ว', 'info');
+}
+
+// Ensure initAuth runs on load
+document.addEventListener('DOMContentLoaded', () => {
+  initAuth();
+});
+
 </script>
 </body>
 </html>
