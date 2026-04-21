@@ -670,7 +670,8 @@ function switchSystem(sys) {
   document.getElementById('mainTitle').textContent = isTank ? 'ระบบส่งอัดท่อ' : isSumm ? 'สรุปข้อมูล / ยอดค้างส่ง' : 'ระบบส่งคืนท่อ';
   document.getElementById('subTitle').textContent = isTank ? 'บันทึกและติดตามการส่งอัดท่อ ไนโตรเจน / ออกซิเจน' : isSumm ? 'เปรียบเทียบยอดค้างส่งและไทม์ไลน์ล่าสุด' : 'บันทึกและติดตามการส่งคืนท่อสำเร็จ';
   
-  document.getElementById('addBtn').style.display = isSumm ? 'none' : 'inline-flex';
+  const isAdmin = currentUser && String(currentUser.Auth).trim().toLowerCase() === 'admin';
+  document.getElementById('addBtn').style.display = (isSumm || !isAdmin) ? 'none' : 'inline-flex';
   
   document.getElementById('thStatus').style.display = isSumm ? 'table-cell' : 'none';
   document.getElementById('thManage').style.display = isSumm ? 'none' : 'table-cell';
@@ -1414,6 +1415,9 @@ function updateAuthUI() {
     appWrap.style.display = 'none';
     loginOverlay.classList.add('open');
   }
+  
+  const isAdmin = currentUser && String(currentUser.Auth).trim().toLowerCase() === 'admin';
+  document.getElementById('addBtn').style.display = (currentSystem === 'Summary' || !isAdmin) ? 'none' : 'inline-flex';
   
   // Re-render table if data is already loaded
   if (allDataset) {
