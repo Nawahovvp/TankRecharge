@@ -47,7 +47,13 @@ function switchSystem(sys) {
       ? '0 4px 18px rgba(99,179,237,0.35)'
       : '0 4px 18px rgba(234,88,12,0.35)';
   }
-  document.getElementById('thInv').textContent = isRec ? 'เลขที่ Invoice' : 'เลขที่ใบส่งอัด';
+  if (isSumm) {
+    document.getElementById('thDate').textContent = 'เลขที่ใบส่งอัด';
+    document.getElementById('thInv').textContent = 'วันที่';
+  } else {
+    document.getElementById('thDate').textContent = 'วันที่';
+    document.getElementById('thInv').textContent = isRec ? 'เลขที่ Invoice' : 'เลขที่ใบส่งอัด';
+  }
 
   document.getElementById('tableTitleText').textContent = isTank ? 'รายการส่งอัดท่อ' : isSumm ? 'ไทม์ไลน์ล่าสุด' : 'รายการส่งคืนท่อ';
   document.getElementById('statLabel1').textContent = isTank ? 'ใบส่งอัดทั้งหมด' : 'ใบส่งคืนทั้งหมด';
@@ -58,10 +64,13 @@ function switchSystem(sys) {
   document.getElementById('lblO2S').textContent = isSumm ? 'O₂ 0.5Q ค้างส่ง' : 'O₂ 0.5Q รวม';
 
   const isGroupedRec = (sys === 'Recripte');
-  document.getElementById('mainTable').querySelector('th:first-child').style.display = isGroupedRec ? 'none' : 'table-cell';
+
+  // Explicitly set all headers
+  document.getElementById('thExp').style.display = (isTank || isGroupedRec) ? 'none' : 'table-cell';
+  document.getElementById('thStatus').style.display = isSumm ? 'table-cell' : 'none';
   document.getElementById('thInv').style.display = isGroupedRec ? 'none' : 'table-cell';
   document.getElementById('thImg').style.display = isGroupedRec ? 'none' : 'table-cell';
-  document.getElementById('thManage').style.display = isGroupedRec ? 'none' : (isSumm ? 'none' : 'table-cell');
+  document.getElementById('thManage').style.display = (isGroupedRec || isSumm) ? 'none' : 'table-cell';
 
   const table  = document.getElementById('mainTable');
   if (isSumm) table.classList.add('compact-table'); else table.classList.remove('compact-table');
@@ -112,7 +121,7 @@ function processLocalData() {
       if (filterProduct === 'all') return true;
       const items = detailCache[currentSystem + '_' + r.invDeliveryID] || [];
       return items.some(it => it.product === filterProduct && it.qty > 0);
-    }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     if (currentSystem === 'Recripte') {
       const groupedRecMap = {};
       for (const r of (mainArr || [])) {
@@ -122,7 +131,7 @@ function processLocalData() {
       const groupedRecList = Object.keys(groupedRecMap).map(d => ({
         date: d,
         invoices: groupedRecMap[d]
-      })).sort((a, b) => b.date.localeCompare(a.date));
+      })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       renderRecTableGrouped(groupedRecList);
     } else {
       renderStandardTable(rowsToRender);
@@ -150,8 +159,71 @@ function processLocalData() {
     for (const date in recByDate) {
       summArr.push({ type: 'Recripte', date: date, invoices: recByDate[date] });
     }
-    summArr.sort((a,b) => b.date.localeCompare(a.date));
+    summArr.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     renderSummaryTable(summArr);
+  }
+}
+
+function updateStats() {
+  if (!allDataset) return;
+  const isGroupedRec = (currentSystem === 'Recripte');
+  const isTank = (currentSystem === 'Tank');
+  const isSumm = (currentSystem === 'Summary');
+
+  if (currentSystem === 'Tank' || currentSystem === 'Recripte') {
+    const mainArr = currentSystem === 'Tank' ? allDataset.tankMain : allDataset.recMain;
+    const detArr  = currentSystem === 'Tank' ? allDataset.tankDetail : allDataset.recDetail;
+    document.getElementById('statTotal').textContent = (mainArr || []).length;
+    let n2 =0, o2l=0, o2s=0;
+    for (const r of (detArr || [])) {
+      if (r.product.includes('ไนโตรเจน')) n2 += Number(r.qty) || 0;
+      else if (r.product.includes('0.5')) o2s += Number(r.qty) || 0;
+      else if (r.product.includes('ออกซิเจน')) o2l += Number(r.qty) || 0;
+    }
+    document.getElementById('statN2').textContent = n2;
+    document.getElementById('statO2L').textContent = o2l;
+    document.getElementById('statO2S').textContent = o2s;
+  } else {
+    const tMain = allDataset.tankMain || [];
+    document.getElementById('statTotal').textContent = tMain.length; 
+    let tN2=0, tO2L=0, tO2S=0;
+    for (const r of (allDataset.tankDetail || [])) {
+      if (r.product.includes('ไนโตรเจน')) tN2 += Number(r.qty) || 0;
+      else if (r.product.includes('0.5')) tO2S += Number(r.qty) || 0;
+      else if (r.product.includes('ออกซิเจน')) tO2L += Number(r.qty) || 0;
+    }
+    let rN2=0, rO2L=0, rO2S=0;
+    for (const r of (allDataset.recDetail || [])) {
+      if (r.product.includes('ไนโตรเจน')) rN2 += Number(r.qty) || 0;
+      else if (r.product.includes('0.5')) rO2S += Number(r.qty) || 0;
+      else if (r.product.includes('ออกซิเจน')) rO2L += Number(r.qty) || 0;
+    }
+    const outN2 = Math.max(0, tN2 - rN2);
+    const outO2L = Math.max(0, tO2L - rO2L);
+    const outO2S = Math.max(0, tO2S - rO2S);
+    document.getElementById('statN2').textContent = outN2;
+    document.getElementById('statO2L').textContent = outO2L;
+    document.getElementById('statO2S').textContent = outO2S;
+    
+    let latestTankDate = '';
+    for (const r of tMain) { if (!latestTankDate || r.date > latestTankDate) latestTankDate = r.date; }
+    let lN2 = 0, lO2L = 0, lO2S = 0;
+    if (latestTankDate) {
+       const latestInvs = tMain.filter(r => r.date === latestTankDate).map(r => r.invDeliveryID);
+       for (const r of (allDataset.tankDetail || [])) {
+          if (latestInvs.includes(r.invDeliveryID)) {
+             if (r.product.includes('ไนโตรเจน')) lN2 += Number(r.qty) || 0;
+             else if (r.product.includes('0.5')) lO2S += Number(r.qty) || 0;
+             else if (r.product.includes('ออกซิเจน')) lO2L += Number(r.qty) || 0;
+          }
+       }
+    }
+    const iconN2 = document.getElementById('statN2').parentElement.previousElementSibling;
+    const iconO2L = document.getElementById('statO2L').parentElement.previousElementSibling;
+    const iconO2S = document.getElementById('statO2S').parentElement.previousElementSibling;
+    if (outN2 !== lN2) iconN2.classList.add('blink'); else iconN2.classList.remove('blink');
+    if (outO2L !== lO2L) iconO2L.classList.add('blink'); else iconO2L.classList.remove('blink');
+    if (outO2S !== lO2S) iconO2S.classList.add('blink'); else iconO2S.classList.remove('blink');
   }
 }
 

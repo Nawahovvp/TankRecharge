@@ -40,38 +40,33 @@ async function loadData(forceRefresh = false) {
   if (!allDataset || forceRefresh) {
     showLoading('กำลังโหลดข้อมูล....');
     try {
-      const [tMain, tDet, rMain, rDet] = await Promise.all([
-        fetchOpensheet('Tank'),
-        fetchOpensheet('Detail_Tank'),
-        fetchOpensheet('Recripte_Tank'),
-        fetchOpensheet('Recripte_Detail_Tank')
-      ]);
-
+      const result = await apiGet('getAllData');
+      
       allDataset = { 
-        tankMain: (Array.isArray(tMain) ? tMain : []).map(r => ({
-          invDeliveryID: String(r.InvDeliveryID || '').trim(),
-          date: parseDateStr(r.Date),
+        tankMain: (result.tankMain || []).map(r => ({
+          invDeliveryID: String(r.invDeliveryID || '').trim(),
+          date: parseDateStr(r.date),
           image: fixGDriveUrl(r.image)
         })).filter(x => x.invDeliveryID),
         
-        tankDetail: (Array.isArray(tDet) ? tDet : []).map(r => ({
-          invDeliveryID: String(r.InvDeliveryID || '').trim(),
-          date: parseDateStr(r.Date),
-          product: String(r.Product || '').trim(),
-          qty: Number(r.Qty) || 0
+        tankDetail: (result.tankDetail || []).map(r => ({
+          invDeliveryID: String(r.invDeliveryID || '').trim(),
+          date: parseDateStr(r.date),
+          product: String(r.product || '').trim(),
+          qty: Number(r.qty) || 0
         })).filter(x => x.invDeliveryID),
         
-        recMain: (Array.isArray(rMain) ? rMain : []).map(r => ({
-          invDeliveryID: String(r.InvoiceID || '').trim(),
-          date: parseDateStr(r.Date),
+        recMain: (result.recMain || []).map(r => ({
+          invDeliveryID: String(r.invDeliveryID || '').trim(),
+          date: parseDateStr(r.date),
           image: fixGDriveUrl(r.image)
         })).filter(x => x.invDeliveryID),
         
-        recDetail: (Array.isArray(rDet) ? rDet : []).map(r => ({
-          invDeliveryID: String(r.InvoiceID || '').trim(),
-          date: parseDateStr(r.Date),
-          product: String(r.Product || '').trim(),
-          qty: Number(r.Qty) || 0
+        recDetail: (result.recDetail || []).map(r => ({
+          invDeliveryID: String(r.invDeliveryID || '').trim(),
+          date: parseDateStr(r.date),
+          product: String(r.product || '').trim(),
+          qty: Number(r.qty) || 0
         })).filter(x => x.invDeliveryID)
       };
     } catch (err) {

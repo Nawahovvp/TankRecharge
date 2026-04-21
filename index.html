@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
@@ -100,10 +100,18 @@
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(99,179,237,0.5); }
     .btn-secondary { background: var(--bg-card2); color: var(--text-primary); border: 1px solid var(--border); }
     .btn-secondary:hover { background: var(--bg-card); border-color: var(--accent1); }
-    .btn-danger  { background: rgba(252,129,129,0.15); color: var(--danger); border: 1px solid rgba(252,129,129,0.35); }
-    .btn-danger:hover  { background: rgba(252,129,129,0.25); }
-    .btn-success { background: rgba(104,211,145,0.15); color: var(--success); border: 1px solid rgba(104,211,145,0.35); }
-    .btn-success:hover { background: rgba(104,211,145,0.25); }
+    .btn-danger  { 
+      background: linear-gradient(135deg, rgba(252,129,129,0.1), rgba(252,129,129,0.2)); 
+      color: #ff8e8e; border: 1px solid rgba(252,129,129,0.4); 
+      box-shadow: 0 2px 8px rgba(252,129,129,0.15);
+    }
+    .btn-danger:hover  { background: rgba(252,129,129,0.3); border-color: #fc8181; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(252,129,129,0.25); }
+    .btn-success { 
+      background: linear-gradient(135deg, rgba(104,211,145,0.1), rgba(104,211,145,0.2)); 
+      color: #89f5b2; border: 1px solid rgba(104,211,145,0.4);
+      box-shadow: 0 2px 8px rgba(104,211,145,0.15);
+    }
+    .btn-success:hover { background: rgba(104,211,145,0.3); border-color: #68d391; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(104,211,145,0.25); }
     .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
@@ -692,15 +700,15 @@
       <table class="data-table" id="mainTable">
         <thead>
           <tr>
-            <th style="width:44px;"></th>
+            <th id="thExp" style="width:44px;"></th>
             <th id="thStatus" style="display:none;width:70px;">สถานะ</th>
+            <th id="thDate">วันที่</th>
             <th id="thInv">เลขที่ใบส่งอัด</th>
-            <th>วันที่</th>
             <th id="thImg">รูปภาพ</th>
             <th style="text-align:center;"><span class="badge badge-n2">N₂ 1.5Q</span></th>
             <th style="text-align:center;"><span class="badge badge-o2">O₂ 1.5Q</span></th>
             <th style="text-align:center;"><span class="badge badge-o2s">O₂ 0.5Q</span></th>
-            <th id="thManage" style="text-align:right;">จัดการ</th>
+            <th id="thManage" style="text-align:left;">จัดการ</th>
           </tr>
         </thead>
         <tbody id="mainTbody">

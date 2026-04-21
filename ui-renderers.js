@@ -40,23 +40,16 @@ function renderStandardTable(rows) {
 
     return `
       <tr>
-        <td><button class="expand-btn" onclick="toggleDetail('${esc(r.invDeliveryID)}', this)">▶</button></td>
-        <td style="display:none;"></td>
-        <td><strong>${esc(r.invDeliveryID)}</strong></td>
         <td>${formatDisplayDate(r.date)}</td>
+        <td><strong>${esc(r.invDeliveryID)}</strong></td>
         <td>${imgHTML}</td>
         <td>${getQty(items, 'ไนโตรเจน 1.5 Q')}</td>
         <td>${getQty(items, 'ออกซิเจน 1.5 Q')}</td>
         <td>${getQty(items, 'ออกซิเจน 0.5 Q')}</td>
-        <td style="text-align:right;white-space:nowrap;">
+        <td style="text-align:left;white-space:nowrap;">
           ${manageHTML}
         </td>
-      </tr>
-      <tr class="detail-row"><td colspan="9">
-        <div class="detail-inner" id="detail-${sid}">
-          <div class="detail-table-wrap" id="detail-content-${sid}"></div>
-        </div>
-      </td></tr>`;
+      </tr>`;
   }).join('');
 }
 
@@ -104,15 +97,10 @@ function renderRecTableGrouped(groupedRows) {
     const dateID = escAttr(g.date);
     return `
       <tr style="cursor:pointer;" onclick="toggleGroupDetail('${esc(g.date)}', this)">
-        <td style="display:none;"></td> 
-        <td style="display:none;"></td>
-        <td style="display:none;"></td>
         <td><strong class="expand-icon" style="color:var(--accent-rec); margin-right:8px;">▶</strong><strong style="color:var(--accent-rec);">${formatDisplayDate(g.date)}</strong></td>
-        <td style="display:none;"></td>
         <td>${getQtyLinkGroup(g.invoices, 'ไนโตรเจน 1.5 Q')}</td>
         <td>${getQtyLinkGroup(g.invoices, 'ออกซิเจน 1.5 Q')}</td>
         <td>${getQtyLinkGroup(g.invoices, 'ออกซิเจน 0.5 Q')}</td>
-        <td style="display:none;"></td>
       </tr>
       <tr class="detail-row"><td colspan="9">
         <div class="detail-inner" id="group-detail-${dateID}">
@@ -164,37 +152,35 @@ function renderSummaryTable(rows) {
       const items = detailCache['Tank_' + r.rec.invDeliveryID] || [];
       const imgHTML = r.rec.image ? `<img src="${esc(r.rec.image)}" class="img-thumb" style="width:36px;height:36px;" alt="Inv" referrerpolicy="no-referrer" onclick="openLightbox(this.src); event.stopPropagation();" />` : '<span class="no-image">—</span>';
       return `
-        <tr class="row-tank">
-          <td style="text-align:center;"></td>
-          <td><span class="badge" style="background:var(--accent1);color:#000;font-size:0.7rem;padding:2px 8px;">ส่งอัด</span></td>
-          <td><strong style="color:var(--text-primary);">${esc(r.rec.invDeliveryID)}</strong></td>
-          <td>${formatDisplayDate(r.date)}</td>
-          <td>${imgHTML}</td>
-          <td style="text-align:center;">${getQtyTank(items, 'ไนโตรเจน 1.5 Q')}</td>
-          <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 1.5 Q')}</td>
-          <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 0.5 Q')}</td>
-          <td style="display:none;"></td>
-        </tr>`;
+         <tr class="row-tank">
+           <td style="text-align:center;"></td>
+           <td><span class="badge" style="background:var(--accent1);color:#000;font-size:0.7rem;padding:2px 8px;">ส่งอัด</span></td>
+           <td><strong style="color:var(--text-primary);">${esc(r.rec.invDeliveryID)}</strong></td>
+           <td>${formatDisplayDate(r.date)}</td>
+           <td>${imgHTML}</td>
+           <td style="text-align:center;">${getQtyTank(items, 'ไนโตรเจน 1.5 Q')}</td>
+           <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 1.5 Q')}</td>
+           <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 0.5 Q')}</td>
+         </tr>`;
     } else {
       const detailID = `summ-detail-${idx}`;
       const clickHandler = `toggleSummDetail('Recripte','${esc(r.date)}',${idx},this)`;
       return `
         <tr class="row-recripte" style="cursor:pointer;" onclick="${clickHandler}">
-           <td style="text-align:center;"><strong class="expand-icon" style="color:var(--text-muted);">▶</strong></td>
+           <td style="text-align:center;"></td>
            <td><span class="badge" style="background:var(--accent-rec);color:#fff;font-size:0.7rem;padding:2px 8px;">ส่งคืน</span></td>
-           <td><strong style="color:var(--text-primary);">—</strong></td>
+           <td style="text-align:left;"><strong class="expand-icon" style="color:var(--text-muted);">▶</strong></td>
            <td>${formatDisplayDate(r.date)}</td>
            <td></td>
            <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ไนโตรเจน 1.5 Q')}</td>
            <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 1.5 Q')}</td>
            <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 0.5 Q')}</td>
-           <td style="display:none;"></td>
         </tr>
         <tr class="detail-row"><td colspan="9">
           <div class="detail-inner" id="${detailID}">
             <div class="detail-table-wrap" id="${detailID}-content"></div>
           </div>
-        </td></tr>`;
+        </tr>`;
     }
   }).join('');
 }
@@ -234,7 +220,7 @@ function toggleSummDetail(type, id, idx, rowEl) {
             <th>เลขที่ใบกำกับ</th>
             <th>สินค้า</th>
             <th style="text-align:center;">จำนวน (ถัง)</th>
-            ${isAdmin ? '<th style="text-align:right;">จัดการ</th>' : ''}
+            ${isAdmin ? '<th style="text-align:left;">จัดการ</th>' : ''}
           </tr>
         </thead>
         <tbody>
@@ -244,7 +230,7 @@ function toggleSummDetail(type, id, idx, rowEl) {
               const editAction = `openEditModal('${esc(it.invID)}','${type}')`;
               const deleteAction = `confirmDelete('${esc(it.invID)}','${type}')`;
               actionsHTML = `
-                <td style="text-align:right;">
+                <td style="text-align:left;">
                   <button class="btn btn-success btn-sm" style="padding:4px 8px; font-size:0.8rem;" onclick="event.stopPropagation(); ${editAction}">✏️ แก้ไข</button>
                   <button class="btn btn-danger btn-sm" style="padding:4px 8px; font-size:0.8rem; margin-left:4px;" onclick="event.stopPropagation(); ${deleteAction}">🗑️ ลบ</button>
                 </td>
@@ -291,7 +277,7 @@ function toggleGroupDetail(date, row) {
             <th>เลขที่ใบกำกับ</th>
             <th>สินค้า</th>
             <th style="text-align:center;">จำนวน (ถัง)</th>
-            ${isAdmin ? '<th style="text-align:right;">จัดการ</th>' : ''}
+            ${isAdmin ? '<th style="text-align:left;">จัดการ</th>' : ''}
           </tr>
         </thead>
         <tbody>
@@ -299,7 +285,7 @@ function toggleGroupDetail(date, row) {
             let actionsHTML = '';
             if (isAdmin) {
               actionsHTML = `
-                <td style="text-align:right;">
+                <td style="text-align:left;">
                   <button class="btn btn-success btn-sm" style="padding:4px 8px; font-size:0.8rem;" onclick="openEditModal('${esc(it.invID)}')">✏️ แก้ไข</button>
                   <button class="btn btn-danger btn-sm" style="padding:4px 8px; font-size:0.8rem; margin-left:4px;" onclick="confirmDelete('${esc(it.invID)}')">🗑️ ลบ</button>
                 </td>
@@ -343,60 +329,3 @@ function toggleDetail(invID, btn) {
   }
 }
 
-function updateStats() {
-  if (!allDataset) return;
-  if (currentSystem === 'Tank' || currentSystem === 'Recripte') {
-    const mainArr = currentSystem === 'Tank' ? allDataset.tankMain : allDataset.recMain;
-    const detArr  = currentSystem === 'Tank' ? allDataset.tankDetail : allDataset.recDetail;
-    document.getElementById('statTotal').textContent = (mainArr || []).length;
-    let n2 =0, o2l=0, o2s=0;
-    for (const r of (detArr || [])) {
-      if (r.product.includes('ไนโตรเจน')) n2 += Number(r.qty) || 0;
-      else if (r.product.includes('0.5')) o2s += Number(r.qty) || 0;
-      else if (r.product.includes('ออกซิเจน')) o2l += Number(r.qty) || 0;
-    }
-    document.getElementById('statN2').textContent = n2;
-    document.getElementById('statO2L').textContent = o2l;
-    document.getElementById('statO2S').textContent = o2s;
-  } else {
-    const tMain = allDataset.tankMain || [];
-    document.getElementById('statTotal').textContent = tMain.length; 
-    let tN2=0, tO2L=0, tO2S=0;
-    for (const r of (allDataset.tankDetail || [])) {
-      if (r.product.includes('ไนโตรเจน')) tN2 += Number(r.qty) || 0;
-      else if (r.product.includes('0.5')) tO2S += Number(r.qty) || 0;
-      else if (r.product.includes('ออกซิเจน')) tO2L += Number(r.qty) || 0;
-    }
-    let rN2=0, rO2L=0, rO2S=0;
-    for (const r of (allDataset.recDetail || [])) {
-      if (r.product.includes('ไนโตรเจน')) rN2 += Number(r.qty) || 0;
-      else if (r.product.includes('0.5')) rO2S += Number(r.qty) || 0;
-      else if (r.product.includes('ออกซิเจน')) rO2L += Number(r.qty) || 0;
-    }
-    const outN2 = Math.max(0, tN2 - rN2);
-    const outO2L = Math.max(0, tO2L - rO2L);
-    const outO2S = Math.max(0, tO2S - rO2S);
-    document.getElementById('statN2').textContent = outN2;
-    document.getElementById('statO2L').textContent = outO2L;
-    document.getElementById('statO2S').textContent = outO2S;
-    let latestTankDate = '';
-    for (const r of tMain) { if (!latestTankDate || r.date > latestTankDate) latestTankDate = r.date; }
-    let lN2 = 0, lO2L = 0, lO2S = 0;
-    if (latestTankDate) {
-       const latestInvs = tMain.filter(r => r.date === latestTankDate).map(r => r.invDeliveryID);
-       for (const r of (allDataset.tankDetail || [])) {
-          if (latestInvs.includes(r.invDeliveryID)) {
-             if (r.product.includes('ไนโตรเจน')) lN2 += Number(r.qty) || 0;
-             else if (r.product.includes('0.5')) lO2S += Number(r.qty) || 0;
-             else if (r.product.includes('ออกซิเจน')) lO2L += Number(r.qty) || 0;
-          }
-       }
-    }
-    const iconN2 = document.getElementById('statN2').parentElement.previousElementSibling;
-    const iconO2L = document.getElementById('statO2L').parentElement.previousElementSibling;
-    const iconO2S = document.getElementById('statO2S').parentElement.previousElementSibling;
-    if (outN2 !== lN2) iconN2.classList.add('blink'); else iconN2.classList.remove('blink');
-    if (outO2L !== lO2L) iconO2L.classList.add('blink'); else iconO2L.classList.remove('blink');
-    if (outO2S !== lO2S) iconO2S.classList.add('blink'); else iconO2S.classList.remove('blink');
-  }
-}
