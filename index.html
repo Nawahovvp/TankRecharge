@@ -1169,7 +1169,7 @@ function renderRecTableGrouped(groupedRows) {
         <td style="display:none;"></td> 
         <td style="display:none;"></td>
         <td style="display:none;"></td>
-        <td><strong style="color:var(--accent-rec);">▶ ${formatDisplayDate(g.date)}</strong></td>
+        <td><strong class="expand-icon" style="color:var(--accent-rec); margin-right:8px;">▶</strong><strong style="color:var(--accent-rec);">${formatDisplayDate(g.date)}</strong></td>
         <td style="display:none;"></td>
         <td>${getQtyLinkGroup(g.invoices, 'ไนโตรเจน 1.5 Q')}</td>
         <td>${getQtyLinkGroup(g.invoices, 'ออกซิเจน 1.5 Q')}</td>
@@ -1221,35 +1221,119 @@ function renderSummaryTable(rows) {
     return els.length > 0 ? els.join('') : `<div style="text-align:center; color:var(--border)">-</div>`;
   };
 
-  tbody.innerHTML = rows.map(r => {
+  tbody.innerHTML = rows.map((r, idx) => {
+    const detailID = `summ-detail-${idx}`;
+    const clickHandler = r.type === 'Tank' 
+      ? `toggleSummDetail('Tank','${esc(r.rec.invDeliveryID)}',${idx},this)`
+      : `toggleSummDetail('Recripte','${esc(r.date)}',${idx},this)`;
+
     if (r.type === 'Tank') {
       const items = detailCache['Tank_' + r.rec.invDeliveryID] || [];
-      const imgHTML = r.rec.image ? `<img src="${esc(r.rec.image)}" class="img-thumb" style="width:36px;height:36px;" alt="Inv" referrerpolicy="no-referrer" onclick="openLightbox(this.src)" />` : '<span class="no-image">—</span>';
-      return `<tr class="row-tank">
-        <td></td>
-        <td><span class="badge" style="background:var(--accent1);color:#000;font-size:0.7rem;padding:2px 8px;">ส่งอัด</span></td>
-        <td><strong>${esc(r.rec.invDeliveryID)}</strong></td>
-        <td>${formatDisplayDate(r.date)}</td>
-        <td>${imgHTML}</td>
-        <td style="text-align:center;">${getQtyTank(items, 'ไนโตรเจน 1.5 Q')}</td>
-        <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 1.5 Q')}</td>
-        <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 0.5 Q')}</td>
-        <td style="display:none;"></td>
-      </tr>`;
+      const imgHTML = r.rec.image ? `<img src="${esc(r.rec.image)}" class="img-thumb" style="width:36px;height:36px;" alt="Inv" referrerpolicy="no-referrer" onclick="openLightbox(this.src); event.stopPropagation();" />` : '<span class="no-image">—</span>';
+      return `
+        <tr class="row-tank">
+          <td style="text-align:center;"></td>
+          <td><span class="badge" style="background:var(--accent1);color:#000;font-size:0.7rem;padding:2px 8px;">ส่งอัด</span></td>
+          <td><strong style="color:var(--text-primary);">${esc(r.rec.invDeliveryID)}</strong></td>
+          <td>${formatDisplayDate(r.date)}</td>
+          <td>${imgHTML}</td>
+          <td style="text-align:center;">${getQtyTank(items, 'ไนโตรเจน 1.5 Q')}</td>
+          <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 1.5 Q')}</td>
+          <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 0.5 Q')}</td>
+          <td style="display:none;"></td>
+        </tr>`;
     } else {
-      return `<tr class="row-recripte">
-         <td></td>
-         <td><span class="badge" style="background:var(--accent-rec);color:#fff;font-size:0.7rem;padding:2px 8px;">ส่งคืน</span></td>
-         <td><span style="color:var(--text-dim);">—</span></td>
-         <td>${formatDisplayDate(r.date)}</td>
-         <td></td>
-         <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ไนโตรเจน 1.5 Q')}</td>
-         <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 1.5 Q')}</td>
-         <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 0.5 Q')}</td>
-         <td style="display:none;"></td>
-      </tr>`;
+      const detailID = `summ-detail-${idx}`;
+      const clickHandler = `toggleSummDetail('Recripte','${esc(r.date)}',${idx},this)`;
+      return `
+        <tr class="row-recripte" style="cursor:pointer;" onclick="${clickHandler}">
+           <td style="text-align:center;"><strong class="expand-icon" style="color:var(--text-muted);">▶</strong></td>
+           <td><span class="badge" style="background:var(--accent-rec);color:#fff;font-size:0.7rem;padding:2px 8px;">ส่งคืน</span></td>
+           <td><strong style="color:var(--text-primary);">—</strong></td>
+           <td>${formatDisplayDate(r.date)}</td>
+           <td></td>
+           <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ไนโตรเจน 1.5 Q')}</td>
+           <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 1.5 Q')}</td>
+           <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 0.5 Q')}</td>
+           <td style="display:none;"></td>
+        </tr>
+        <tr class="detail-row"><td colspan="9">
+          <div class="detail-inner" id="${detailID}">
+            <div class="detail-table-wrap" id="${detailID}-content"></div>
+          </div>
+        </td></tr>`;
     }
   }).join('');
+}
+function toggleSummDetail(type, id, idx, rowEl) {
+  const detailEl = document.getElementById(`summ-detail-${idx}`);
+  if (!detailEl) return;
+  const isOpen = detailEl.classList.toggle('open');
+  
+  const icon = rowEl.querySelector('.expand-icon');
+  if (icon) {
+    icon.textContent = isOpen ? '▼' : '▶';
+    icon.style.color = isOpen ? 'var(--accent1)' : 'var(--text-muted)';
+  }
+
+  if (isOpen) {
+    const contentWrap = document.getElementById(`summ-detail-${idx}-content`);
+    let allItems = [];
+    
+    if (type === 'Tank') {
+      allItems = (detailCache['Tank_' + id] || []).map(it => ({ ...it, invID: id }));
+    } else {
+      // type is Recripte, id is date
+      const date = id;
+      const recInvs = (allDataset.recMain || []).filter(r => r.date === date);
+      for (const inv of recInvs) {
+        const det = detailCache['Recripte_' + inv.invDeliveryID] || [];
+        det.forEach(d => allItems.push({ ...d, invID: inv.invDeliveryID }));
+      }
+    }
+
+    if (!allItems.length) { contentWrap.innerHTML = '<p>ยังไม่มีรายการ</p>'; return; }
+    
+    const isAdmin = currentUser && String(currentUser.Auth).trim().toLowerCase() === 'admin';
+    const accentColor = type === 'Tank' ? 'var(--accent1)' : 'var(--accent-rec)';
+
+    contentWrap.innerHTML = `
+      <table class="detail-sub-table">
+        <thead>
+          <tr>
+            <th>เลขที่ใบกำกับ</th>
+            <th>สินค้า</th>
+            <th style="text-align:center;">จำนวน (ถัง)</th>
+            ${isAdmin ? '<th style="text-align:right;">จัดการ</th>' : ''}
+          </tr>
+        </thead>
+        <tbody>
+          ${allItems.map(it => {
+            let actionsHTML = '';
+            if (isAdmin) {
+              const editAction = type === 'Tank' ? `openEditModal('${escAttr(it.invID)}','Tank')` : `openEditModal('${escAttr(it.invID)}')`;
+              actionsHTML = `
+                <td style="text-align:right;">
+                  <button class="btn btn-success btn-sm" style="padding:4px 8px; font-size:0.8rem;" onclick="event.stopPropagation(); ${editAction}">✏️ แก้ไข</button>
+                  <button class="btn btn-danger btn-sm" style="padding:4px 8px; font-size:0.8rem; margin-left:4px;" onclick="event.stopPropagation(); confirmDelete('${escAttr(it.invID)}')">🗑️ ลบ</button>
+                </td>
+              `;
+            }
+            const cls = badgeClass(it.product);
+            const colorStyle = `color:${accentColor}; font-weight:700;`;
+            
+            return `
+              <tr>
+                <td><strong style="${colorStyle}">${esc(it.invID)}</strong></td>
+                <td><span class="badge ${cls}">${esc(it.product)}</span></td>
+                <td style="text-align:center;"><strong style="${colorStyle}">${it.qty}</strong></td>
+                ${actionsHTML}
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
 }
 
 // ============================================================
@@ -1265,9 +1349,9 @@ function toggleGroupDetail(date, row) {
   const isOpen = el.classList.toggle('open');
   
   // Find the anchor element (strong) and toggle a visual indicator
-  const strong = row.querySelector('strong');
+  const strong = row.querySelector('.expand-icon');
   if (strong) {
-    strong.textContent = (isOpen ? '▼ ' : '▶ ') + formatDisplayDate(date);
+    strong.textContent = isOpen ? '▼' : '▶';
   }
 
   if (isOpen) {
