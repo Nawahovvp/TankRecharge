@@ -21,10 +21,10 @@ const RECRIPTE_DETAIL_SHEET = 'Recripte_Detail_Tank';
 // HELPER — Get target sheet names based on system
 // ------------------------------------------------------------------
 function getSheetInfo(system) {
-  if (system === 'Recripte') {
-    return { main: RECRIPTE_SHEET, detail: RECRIPTE_DETAIL_SHEET, idHeader: 'InvoiceID', prefix: 'REC_' };
-  }
-  return { main: TANK_SHEET, detail: DETAIL_SHEET, idHeader: 'InvDeliveryID', prefix: 'INV_' };
+  if (system === 'Tank')     return { main: 'Tank', detail: 'Detail_Tank', prefix: 'TANK_' };
+  if (system === 'Recripte') return { main: 'Recripte_Tank', detail: 'Recripte_Detail_Tank', prefix: 'REC_' };
+  // Fallback defaults to Tank
+  return { main: 'Tank', detail: 'Detail_Tank', prefix: 'UNK_' };
 }
 
 // ------------------------------------------------------------------
@@ -246,6 +246,7 @@ function saveDetails(invDeliveryID, date, details, system) {
     }
   }
 
+  SpreadsheetApp.flush();
   return { success: true };
 }
 

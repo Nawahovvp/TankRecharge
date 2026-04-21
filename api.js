@@ -69,6 +69,14 @@ async function loadData(forceRefresh = false) {
           qty: Number(r.qty) || 0
         })).filter(x => x.invDeliveryID)
       };
+
+      // Strip out orphaned details (records that have a detail row but no main/header row) 
+      // This prevents the stats cards from over-counting deleted invoices
+      const validTankIds = new Set(allDataset.tankMain.map(r => r.invDeliveryID));
+      allDataset.tankDetail = allDataset.tankDetail.filter(r => validTankIds.has(r.invDeliveryID));
+
+      const validRecIds = new Set(allDataset.recMain.map(r => r.invDeliveryID));
+      allDataset.recDetail = allDataset.recDetail.filter(r => validRecIds.has(r.invDeliveryID));
     } catch (err) {
       onError(err);
       return;
