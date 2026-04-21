@@ -940,11 +940,13 @@ function renderStandardTable(rows) {
   }
 
   const getQty = (items, lbl) => {
-    const f = items.find(it => it.product === lbl);
-    if (!f || !f.qty) return `<div style="text-align:center; color:var(--border)">-</div>`;
+    const f = items.filter(it => it.product === lbl);
+    if (!f.length) return `<div style="text-align:center; color:var(--border)">-</div>`;
+    const sumQty = f.reduce((sum, it) => sum + (it.qty || 0), 0);
+    if (sumQty <= 0) return `<div style="text-align:center; color:var(--border)">-</div>`;
     const k = labelToKey(lbl);
     const cls = k === 'N2' ? 'badge-n2' : k === 'O2L' ? 'badge-o2' : 'badge-o2s';
-    return `<div style="text-align:center;"><span class="badge ${cls}" style="min-width:35px; text-align:center;">${f.qty}</span></div>`;
+    return `<div style="text-align:center;"><span class="badge ${cls}" style="min-width:35px; text-align:center;">${sumQty}</span></div>`;
   };
 
   tbody.innerHTML = rows.map(r => {
@@ -998,11 +1000,13 @@ function renderSummaryTable(rows) {
   }
 
   const getQtyTank = (items, lbl) => {
-    const f = items.find(it => it.product === lbl);
-    if (!f || !f.qty) return `<div style="text-align:center; color:var(--border)">-</div>`;
+    const f = items.filter(it => it.product === lbl);
+    if (!f.length) return `<div style="text-align:center; color:var(--border)">-</div>`;
+    const sumQty = f.reduce((sum, it) => sum + (it.qty || 0), 0);
+    if (sumQty <= 0) return `<div style="text-align:center; color:var(--border)">-</div>`;
     const k = labelToKey(lbl);
     const cls = k === 'N2' ? 'badge-n2' : k === 'O2L' ? 'badge-o2' : 'badge-o2s';
-    return `<div style="text-align:center;"><span class="badge ${cls}" style="min-width:35px; text-align:center;">${f.qty}</span></div>`;
+    return `<div style="text-align:center;"><span class="badge ${cls}" style="min-width:35px; text-align:center;">${sumQty}</span></div>`;
   };
 
   const getQtyRecGroup = (invoices, lbl) => {
@@ -1011,12 +1015,13 @@ function renderSummaryTable(rows) {
     const cls = k === 'N2' ? 'badge-n2' : k === 'O2L' ? 'badge-o2' : 'badge-o2s';
     for (const inv of invoices) {
       const items = detailCache['Recripte_' + inv.invDeliveryID] || [];
-      const found = items.find(it => it.product === lbl);
-      if (found && found.qty) {
+      const filtered = items.filter(it => it.product === lbl);
+      const sumQty = filtered.reduce((sum, it) => sum + (it.qty || 0), 0);
+      if (sumQty > 0) {
         const invIDText = `(${esc(inv.invDeliveryID)})`;
         const content = inv.image 
-           ? `${found.qty} <a href="#" onclick="openLightbox('${esc(inv.image)}'); return false;" style="color:inherit;text-decoration:underline;">${invIDText}</a>`
-           : `${found.qty} ${invIDText}`;
+           ? `${sumQty} <a href="#" onclick="openLightbox('${esc(inv.image)}'); return false;" style="color:inherit;text-decoration:underline;">${invIDText}</a>`
+           : `${sumQty} ${invIDText}`;
         els.push(`<div style="margin-bottom:4px; text-align:center;"><span class="badge ${cls}">${content}</span></div>`);
       }
     }
