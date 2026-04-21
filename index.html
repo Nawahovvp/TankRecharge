@@ -141,6 +141,12 @@
     .stat-label { font-size: 1.15rem; color: var(--text-primary); font-weight: 700; letter-spacing: .02em; }
     .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--accent1); line-height: 1; margin-top: 6px; }
 
+    @keyframes blinkAnim {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.15; }
+    }
+    .blink { animation: blinkAnim 1.2s infinite; }
+
     /* ===== TABLE CARD ===== */
     .table-card {
       background: var(--bg-card); border: 1px solid var(--border);
@@ -823,7 +829,7 @@ function formatDisplayDate(str) {
 
 async function loadData(forceRefresh = false) {
   if (!allDataset || forceRefresh) {
-    showLoading('กำลังโหลด...');
+    showLoading('กำลังโหลดข้อมูล....');
     try {
       const [tMain, tDet, rMain, rDet] = await Promise.all([
         fetchOpensheet('Tank'),
@@ -1129,10 +1135,43 @@ function updateStats() {
       else if (r.product.includes('0.5')) rO2S += Number(r.qty) || 0;
       else if (r.product.includes('ออกซิเจน')) rO2L += Number(r.qty) || 0;
     }
+    const outN2 = Math.max(0, tN2 - rN2);
+    const outO2L = Math.max(0, tO2L - rO2L);
+    const outO2S = Math.max(0, tO2S - rO2S);
     
-    document.getElementById('statN2').textContent = Math.max(0, tN2 - rN2);
-    document.getElementById('statO2L').textContent = Math.max(0, tO2L - rO2L);
-    document.getElementById('statO2S').textContent = Math.max(0, tO2S - rO2S);
+    document.getElementById('statN2').textContent = outN2;
+    document.getElementById('statO2L').textContent = outO2L;
+    document.getElementById('statO2S').textContent = outO2S;
+
+    // Find latest delivery date
+    let latestTankDate = '';
+    for (const r of tMain) {
+       if (!latestTankDate || r.date > latestTankDate) {
+          latestTankDate = r.date;
+       }
+    }
+    
+    // Sum quantities for the latest delivery date
+    let lN2 = 0, lO2L = 0, lO2S = 0;
+    if (latestTankDate) {
+       const latestInvs = tMain.filter(r => r.date === latestTankDate).map(r => r.invDeliveryID);
+       for (const r of (allDataset.tankDetail || [])) {
+          if (latestInvs.includes(r.invDeliveryID)) {
+             if (r.product.includes('ไนโตรเจน')) lN2 += Number(r.qty) || 0;
+             else if (r.product.includes('0.5')) lO2S += Number(r.qty) || 0;
+             else if (r.product.includes('ออกซิเจน')) lO2L += Number(r.qty) || 0;
+          }
+       }
+    }
+
+    // Toggle blink class
+    const iconN2 = document.getElementById('statN2').parentElement.previousElementSibling;
+    const iconO2L = document.getElementById('statO2L').parentElement.previousElementSibling;
+    const iconO2S = document.getElementById('statO2S').parentElement.previousElementSibling;
+    
+    if (outN2 !== lN2) iconN2.classList.add('blink'); else iconN2.classList.remove('blink');
+    if (outO2L !== lO2L) iconO2L.classList.add('blink'); else iconO2L.classList.remove('blink');
+    if (outO2S !== lO2S) iconO2S.classList.add('blink'); else iconO2S.classList.remove('blink');
   }
 }
 
