@@ -316,8 +316,13 @@ async function saveRecord() {
 
   if (!details.length) { showToast('กรุณากรอกจำนวนสินค้าอย่างน้อย 1 รายการ', 'error'); return; }
 
-  // --- OPTIMISTIC UPDATE START ---
   const isAdd = !editingInvID;
+  if (isAdd && !imageBase64) {
+    showToast('กรุณาแนบรูปภาพใบส่งอัด/ใบส่งคืน ทุกครั้ง', 'error');
+    return;
+  }
+
+  // --- OPTIMISTIC UPDATE START ---
   const sys = editingSystem || currentSystem;
   
   // 1. Update Main Dataset
