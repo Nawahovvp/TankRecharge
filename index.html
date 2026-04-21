@@ -823,7 +823,7 @@ function formatDisplayDate(str) {
 
 async function loadData(forceRefresh = false) {
   if (!allDataset || forceRefresh) {
-    showLoading('กำลังโหลดข้อมูลทั้งหมด (Opensheet API)...');
+    showLoading('กำลังโหลด...');
     try {
       const [tMain, tDet, rMain, rDet] = await Promise.all([
         fetchOpensheet('Tank'),
