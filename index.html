@@ -734,6 +734,7 @@ let imageFilename = '';
 let filterProduct = 'all';
 let debounceTimer = null;
 let showFullInvoiceInfo = false;
+let editingSystem = null;
 
 const PRODUCT_LABEL_MAP = {
   'N2':  'ไนโตรเจน 1.5 Q',
@@ -828,10 +829,10 @@ function setProductFilter(prod, btn) {
 // ============================================================
 //  API HELPERS
 // ============================================================
-async function apiGet(action, params = {}) {
+async function apiGet(action, params = {}, sysOverride) {
   const url = new URL(API_URL);
   url.searchParams.set('action', action);
-  url.searchParams.set('system', currentSystem);
+  url.searchParams.set('system', sysOverride || editingSystem || currentSystem);
   for (const [k, v] of Object.entries(params)) {
     if (v !== '' && v !== null && v !== undefined) url.searchParams.set(k, v);
   }
@@ -839,8 +840,8 @@ async function apiGet(action, params = {}) {
   return await resp.json();
 }
 
-async function apiPost(payload) {
-  payload.system = currentSystem;
+async function apiPost(payload, sysOverride) {
+  payload.system = sysOverride || editingSystem || currentSystem;
   const resp = await fetch(API_URL, {
     method: 'POST',
     redirect: 'follow',
@@ -1311,11 +1312,12 @@ function toggleSummDetail(type, id, idx, rowEl) {
           ${allItems.map(it => {
             let actionsHTML = '';
             if (isAdmin) {
-              const editAction = type === 'Tank' ? `openEditModal('${escAttr(it.invID)}','Tank')` : `openEditModal('${escAttr(it.invID)}')`;
+              const editAction = `openEditModal('${esc(it.invID)}','${type}')`;
+              const deleteAction = `confirmDelete('${esc(it.invID)}','${type}')`;
               actionsHTML = `
                 <td style="text-align:right;">
                   <button class="btn btn-success btn-sm" style="padding:4px 8px; font-size:0.8rem;" onclick="event.stopPropagation(); ${editAction}">✏️ แก้ไข</button>
-                  <button class="btn btn-danger btn-sm" style="padding:4px 8px; font-size:0.8rem; margin-left:4px;" onclick="event.stopPropagation(); confirmDelete('${escAttr(it.invID)}')">🗑️ ลบ</button>
+                  <button class="btn btn-danger btn-sm" style="padding:4px 8px; font-size:0.8rem; margin-left:4px;" onclick="event.stopPropagation(); ${deleteAction}">🗑️ ลบ</button>
                 </td>
               `;
             }
@@ -1530,9 +1532,10 @@ function clearFilters() {
 // ============================================================
 function openAddModal() {
   editingInvID = null;
+  editingSystem = currentSystem;
   imageBase64  = null;
   imageFilename = '';
-  const isTank = (currentSystem === 'Tank');
+  const isTank = (editingSystem === 'Tank');
   document.getElementById('modalTitle').textContent = isTank ? '➕ เพิ่มใบส่งอัด' : '➕ เพิ่มใบส่งคืน';
   document.getElementById('fldInvLabel').textContent = isTank ? 'เลขที่ใบส่งอัด *' : 'เลขที่ Invoice *';
   document.getElementById('fldInvID').placeholder = isTank ? 'เช่น INV-2024-001' : 'เช่น REC-2024-001';
@@ -1548,9 +1551,10 @@ function openAddModal() {
 // ============================================================
 //  MODAL — EDIT
 // ============================================================
-async function openEditModal(invID) {
+async function openEditModal(invID, sysOverride) {
   if (!allDataset) return;
-  const isTank = (currentSystem === 'Tank');
+  editingSystem = sysOverride || currentSystem;
+  const isTank = (editingSystem === 'Tank');
   const mainArr = isTank ? allDataset.tankMain : allDataset.recMain;
   const rec = (mainArr || []).find(r => r.invDeliveryID === invID);
   if (!rec) return;
@@ -1577,12 +1581,12 @@ async function openEditModal(invID) {
   }
 
   // Load details
-  let details = detailCache[currentSystem + '_' + invID];
+  let details = detailCache[editingSystem + '_' + invID];
   if (!details) {
     showLoading('โหลดรายการสินค้า...');
     try {
       details = await apiGet('getDetailList', { invDeliveryID: invID });
-      detailCache[invID] = details || [];
+      detailCache[editingSystem + '_' + invID] = details || [];
     } catch (e) { details = []; }
     hideLoading();
   }
@@ -1654,15 +1658,16 @@ async function saveRecord() {
 // ============================================================
 //  DELETE
 // ============================================================
-function confirmDelete(invID) {
-  const isTank = (currentSystem === 'Tank');
+function confirmDelete(invID, sysOverride) {
+  const sys = sysOverride || currentSystem;
+  const isTank = (sys === 'Tank');
   const typeText = isTank ? 'ใบส่งอัด' : 'ใบส่งคืน';
   document.getElementById('confirmText').textContent =
     `ลบ${typeText} "${invID}" และรายการทั้งหมดที่เกี่ยวข้อง?`;
   document.getElementById('confirmOkBtn').onclick = async () => {
     showLoading('กำลังลบข้อมูล...');
     try {
-      const r = await apiPost({ action: 'deleteTank', invDeliveryID: invID });
+      const r = await apiPost({ action: 'deleteTank', invDeliveryID: invID }, sys);
       if (r && r.error) throw new Error(r.error);
       showToast('ลบข้อมูลสำเร็จ', 'success');
       closeConfirm();
