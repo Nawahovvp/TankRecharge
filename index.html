@@ -19,9 +19,10 @@
       --border-glow:  rgba(99,179,237,0.35);
       --accent1:      #63b3ed;
       --accent2:      #76e4f7;
-      --accent-n2:    #68d391;
-      --accent-o2:    #fc8181;
-      --accent-o2s:   #f6ad55;
+      --accent-n2:    #2dd4bf; /* Mint/Teal */
+      --accent-o2:    #fb7185; /* Rose/Crimson */
+      --accent-o2s:   #fbbf24; /* Amber/Gold */
+      --accent-rec:   #ea580c; /* Dark Orange for Return */
       --text-primary: #e8eaf0;
       --text-muted:   #8b92b8;
       --text-dim:     #5a6080;
@@ -433,8 +434,8 @@
       border-left: 2px solid rgba(99,179,237,0.5) !important;
     }
     .row-recripte { 
-      background: rgba(45,212,191,0.05) !important; 
-      border-left: 2px solid rgba(45,212,191,0.5) !important;
+      background: rgba(234,88,12,0.05) !important; 
+      border-left: 2px solid rgba(234,88,12,0.5) !important;
     }
     .compact-table td { padding: 8px 12px !important; }
 
@@ -542,7 +543,7 @@
       <div class="product-rows">
         <div class="product-row">
           <div>
-            <div class="product-name">🟢 ไนโตรเจน 1.5 Q</div>
+            <div class="product-name">💠 ไนโตรเจน 1.5 Q</div>
             <div class="product-badge">Nitrogen 1.5 Q</div>
           </div>
           <input type="number" id="qty-N2" placeholder="0" min="0" step="1" />
@@ -556,7 +557,7 @@
         </div>
         <div class="product-row">
           <div>
-            <div class="product-name">🟠 ออกซิเจน 0.5 Q</div>
+            <div class="product-name">🟡 ออกซิเจน 0.5 Q</div>
             <div class="product-badge">Oxygen 0.5 Q</div>
           </div>
           <input type="number" id="qty-O2S" placeholder="0" min="0" step="1" />
@@ -660,7 +661,7 @@
       <div><div class="stat-label" id="statLabel1">ใบส่งอัดทั้งหมด</div><div class="stat-value" id="statTotal">—</div></div>
     </div>
     <div class="stat-card">
-      <div class="stat-icon">🟢</div>
+      <div class="stat-icon">💠</div>
       <div><div class="stat-label" id="lblN2">N₂ 1.5Q รวม</div><div class="stat-value" id="statN2">—</div></div>
     </div>
     <div class="stat-card">
@@ -668,7 +669,7 @@
       <div><div class="stat-label" id="lblO2L">O₂ 1.5Q รวม</div><div class="stat-value" id="statO2L">—</div></div>
     </div>
     <div class="stat-card">
-      <div class="stat-icon">🟠</div>
+      <div class="stat-icon">🟡</div>
       <div><div class="stat-label" id="lblO2S">O₂ 0.5Q รวม</div><div class="stat-value" id="statO2S">—</div></div>
     </div>
   </div>
@@ -774,6 +775,12 @@ function switchSystem(sys) {
 
   if (!isSumm) {
     document.getElementById('addBtn').innerHTML = isTank ? '➕ เพิ่มใบส่งอัด' : '➕ เพิ่มใบส่งคืน';
+    document.getElementById('addBtn').style.background = isTank 
+      ? 'linear-gradient(135deg, var(--accent1), var(--accent2))' 
+      : 'linear-gradient(135deg, var(--accent-rec), #f97316)';
+    document.getElementById('addBtn').style.boxShadow = isTank
+      ? '0 4px 18px rgba(99,179,237,0.35)'
+      : '0 4px 18px rgba(234,88,12,0.35)';
   }
   document.getElementById('thInv').textContent = isRec ? 'เลขที่ Invoice' : 'เลขที่ใบส่งอัด';
 
@@ -1162,7 +1169,7 @@ function renderRecTableGrouped(groupedRows) {
         <td style="display:none;"></td> 
         <td style="display:none;"></td>
         <td style="display:none;"></td>
-        <td><strong style="color:var(--accent1);">▶ ${formatDisplayDate(g.date)}</strong></td>
+        <td><strong style="color:var(--accent-rec);">▶ ${formatDisplayDate(g.date)}</strong></td>
         <td style="display:none;"></td>
         <td>${getQtyLinkGroup(g.invoices, 'ไนโตรเจน 1.5 Q')}</td>
         <td>${getQtyLinkGroup(g.invoices, 'ออกซิเจน 1.5 Q')}</td>
@@ -1192,15 +1199,12 @@ function renderSummaryTable(rows) {
     if (!f.length) return `<div style="text-align:center; color:var(--border)">-</div>`;
     const sumQty = f.reduce((sum, it) => sum + (it.qty || 0), 0);
     if (sumQty <= 0) return `<div style="text-align:center; color:var(--border)">-</div>`;
-    const k = labelToKey(lbl);
-    const color = k === 'N2' ? 'var(--accent-n2)' : k === 'O2L' ? 'var(--accent-o2)' : 'var(--accent-o2s)';
-    return `<div style="text-align:center;"><strong style="font-size:1.15rem; color:${color};">${sumQty}</strong></div>`;
+    return `<div style="text-align:center;"><strong style="font-size:1.15rem; color:var(--accent1);">${sumQty}</strong></div>`;
   };
 
   const getQtyRecGroup = (invoices, lbl) => {
-    let els = [];
-    const k = labelToKey(lbl);
-    const cls = k === 'N2' ? 'badge-n2' : k === 'O2L' ? 'badge-o2' : 'badge-o2s';
+    const els = [];
+    const statusColor = 'var(--accent-rec)';
     for (const inv of invoices) {
       const items = detailCache['Recripte_' + inv.invDeliveryID] || [];
       const filtered = items.filter(it => it.product === lbl);
@@ -1209,9 +1213,9 @@ function renderSummaryTable(rows) {
         const invIDText = showFullInvoiceInfo ? ` (${esc(inv.invDeliveryID)})` : '';
         const textContent = `${sumQty}${invIDText}`;
         const content = inv.image 
-           ? `<a href="#" onclick="openLightbox('${esc(inv.image)}'); return false;" style="color:inherit;text-decoration:none;">${textContent} 🖼️</a>`
+           ? `<a href="#" onclick="openLightbox('${esc(inv.image)}'); return false;" style="color:var(--accent-rec); text-decoration:none;">${textContent} 🖼️</a>`
            : textContent;
-        els.push(`<div style="margin-bottom:4px; text-align:center;"><span class="badge ${cls}" style="cursor:${inv.image ? 'pointer':'default'};">${content}</span></div>`);
+        els.push(`<div style="margin-bottom:4px; text-align:center;"><strong style="font-size:1.15rem; color:${statusColor}; cursor:${inv.image ? 'pointer':'default'};">${content}</strong></div>`);
       }
     }
     return els.length > 0 ? els.join('') : `<div style="text-align:center; color:var(--border)">-</div>`;
@@ -1235,7 +1239,7 @@ function renderSummaryTable(rows) {
     } else {
       return `<tr class="row-recripte">
          <td></td>
-         <td><span class="badge" style="background:#48bb78;color:#fff;font-size:0.7rem;padding:2px 8px;">ส่งคืน</span></td>
+         <td><span class="badge" style="background:var(--accent-rec);color:#fff;font-size:0.7rem;padding:2px 8px;">ส่งคืน</span></td>
          <td><span style="color:var(--text-dim);">—</span></td>
          <td>${formatDisplayDate(r.date)}</td>
          <td></td>
