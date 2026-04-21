@@ -601,7 +601,7 @@
   </div>
 
   <div class="stats-bar">
-    <div class="stat-card">
+    <div class="stat-card" id="cardTotal">
       <div class="stat-icon">📋</div>
       <div><div class="stat-label" id="statLabel1">ใบส่งอัดทั้งหมด</div><div class="stat-value" id="statTotal">—</div></div>
     </div>
@@ -715,9 +715,9 @@ function switchSystem(sys) {
   }
   document.getElementById('thInv').textContent = isRec ? 'เลขที่ Invoice' : 'เลขที่ใบส่งอัด';
 
-  
   document.getElementById('tableTitleText').textContent = isTank ? 'รายการส่งอัดท่อ' : isSumm ? 'ไทม์ไลน์ล่าสุด' : 'รายการส่งคืนท่อ';
-  document.getElementById('statLabel1').textContent = isTank ? 'ใบส่งอัดทั้งหมด' : isSumm ? 'จำนวนใบส่งอัด' : 'ใบส่งคืนทั้งหมด';
+  document.getElementById('statLabel1').textContent = isTank ? 'ใบส่งอัดทั้งหมด' : 'ใบส่งคืนทั้งหมด';
+  document.getElementById('cardTotal').style.display = isSumm ? 'none' : 'flex';
   
   document.getElementById('lblN2').textContent = isSumm ? 'N₂ 1.5Q ค้างส่ง' : 'N₂ 1.5Q รวม';
   document.getElementById('lblO2L').textContent = isSumm ? 'O₂ 1.5Q ค้างส่ง' : 'O₂ 1.5Q รวม';
