@@ -162,10 +162,10 @@
 
     .data-table { width: 100%; border-collapse: collapse; }
     .data-table th {
-      padding: 10px 12px; text-align: left;
-      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .06em; color: var(--text-muted);
-      background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+      padding: 14px 12px; text-align: left;
+      font-size: 0.9rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--text-primary);
+      background: var(--bg-secondary); border-bottom: 2px solid var(--border);
       white-space: nowrap;
     }
     .data-table td { 
@@ -176,10 +176,15 @@
     .data-table tbody tr:hover { background: rgba(99,179,237,0.05); }
     .data-table tbody tr:last-child td { border-bottom: none; }
 
-    .badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+    .badge { display: inline-block; padding: 3px 12px; border-radius: 99px; font-size: 0.8rem; font-weight: 700; }
     .badge-n2  { background: rgba(104,211,145,0.15); color: var(--accent-n2); }
     .badge-o2  { background: rgba(252,129,129,0.15); color: var(--accent-o2); }
     .badge-o2s { background: rgba(246,173,85,0.15);  color: var(--accent-o2s); }
+    
+    .data-table th .badge {
+      font-size: 1.1rem;
+      padding: 8px 18px;
+    }
 
     .img-thumb {
       width: 44px; height: 44px; object-fit: cover;
@@ -582,7 +587,7 @@
     <button class="tab-btn" id="tab-Summary" onclick="switchSystem('Summary')">📊 สรุปข้อมูล</button>
   </div>
 
-  <div class="filter-panel">
+  <div class="filter-panel" style="display: none;">
     <div class="filter-label">กรองตามประเภทสินค้า :</div>
     <div class="filter-chips">
       <button class="filter-chip active" onclick="setProductFilter('all', this)">
@@ -1055,7 +1060,7 @@ function renderRecTableGrouped(groupedRows) {
         els.push(`
           <div style="margin-bottom:6px; text-align:center; display:flex; align-items:center; justify-content:center;">
             <span class="badge ${cls}" style="display:inline-flex; align-items:center; padding:4px 10px; border:1px solid rgba(255,255,255,0.1);">
-              <span style="font-weight:700; font-size:0.9rem;">${textContent}</span>
+              <span style="font-weight:700; font-size:1rem;">${textContent}</span>
               ${imgEmoji}
             </span>
           </div>`);
