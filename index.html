@@ -140,6 +140,9 @@
     .stat-icon { font-size: 32px; }
     .stat-label { font-size: 1.15rem; color: var(--text-primary); font-weight: 700; letter-spacing: .02em; }
     .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--accent1); line-height: 1; margin-top: 6px; }
+    #statN2, #lblN2 { color: var(--accent-n2); }
+    #statO2L, #lblO2L { color: var(--accent-o2); }
+    #statO2S, #lblO2S { color: var(--accent-o2s); }
 
     @keyframes blinkAnim {
       0%, 100% { opacity: 1; }
@@ -423,6 +426,52 @@
       
       .confirm-box { padding: 20px; }
     }
+
+    /* Summary Tab Styling */
+    .row-tank { 
+      background: rgba(99,179,237,0.05) !important; 
+      border-left: 2px solid rgba(99,179,237,0.5) !important;
+    }
+    .row-recripte { 
+      background: rgba(45,212,191,0.05) !important; 
+      border-left: 2px solid rgba(45,212,191,0.5) !important;
+    }
+    .compact-table td { padding: 8px 12px !important; }
+
+    /* Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 22px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--bg-card2);
+      transition: .4s;
+      border: 1px solid var(--border);
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--text-muted);
+      transition: .4s;
+    }
+    input:checked + .slider { background-color: rgba(99,179,237,0.25); border-color: var(--accent1); }
+    input:focus + .slider { box-shadow: 0 0 1px var(--accent1); }
+    input:checked + .slider:before {
+      transform: translateX(22px);
+      background-color: var(--accent1);
+    }
+    .slider.round { border-radius: 34px; }
+    .slider.round:before { border-radius: 50%; }
   </style>
 </head>
 <body>
@@ -493,7 +542,7 @@
       <div class="product-rows">
         <div class="product-row">
           <div>
-            <div class="product-name">🔵 ไนโตรเจน 1.5 Q</div>
+            <div class="product-name">🟢 ไนโตรเจน 1.5 Q</div>
             <div class="product-badge">Nitrogen 1.5 Q</div>
           </div>
           <input type="number" id="qty-N2" placeholder="0" min="0" step="1" />
@@ -611,7 +660,7 @@
       <div><div class="stat-label" id="statLabel1">ใบส่งอัดทั้งหมด</div><div class="stat-value" id="statTotal">—</div></div>
     </div>
     <div class="stat-card">
-      <div class="stat-icon">🔵</div>
+      <div class="stat-icon">🟢</div>
       <div><div class="stat-label" id="lblN2">N₂ 1.5Q รวม</div><div class="stat-value" id="statN2">—</div></div>
     </div>
     <div class="stat-card">
@@ -625,10 +674,17 @@
   </div>
 
   <div class="table-card">
-    <div class="table-header">
+    <div class="table-header" style="display: flex; justify-content: space-between; align-items: center;">
       <div>
         <span class="table-title" id="tableTitleText">รายการส่งอัดท่อ</span>
         <span class="table-count" id="tableCount"></span>
+      </div>
+      <div id="summarySwitchContainer" style="display: none; align-items: center; gap: 10px;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">แสดงเลขที่ใบกำกับ</span>
+        <label class="switch">
+          <input type="checkbox" id="fullInvToggle" onchange="toggleFullInvoiceInfo(this.checked)">
+          <span class="slider round"></span>
+        </label>
       </div>
     </div>
     <div style="overflow-x:auto;">
@@ -676,6 +732,7 @@ let imageBase64  = null;
 let imageFilename = '';
 let filterProduct = 'all';
 let debounceTimer = null;
+let showFullInvoiceInfo = false;
 
 const PRODUCT_LABEL_MAP = {
   'N2':  'ไนโตรเจน 1.5 Q',
@@ -735,6 +792,22 @@ function switchSystem(sys) {
   document.getElementById('thImg').style.display = isGroupedRec ? 'none' : 'table-cell';
   document.getElementById('thManage').style.display = isGroupedRec ? 'none' : (isSumm ? 'none' : 'table-cell');
 
+  // Manage compact table class for specific tabs
+  const table  = document.getElementById('mainTable');
+  if (isSumm) {
+    table.classList.add('compact-table');
+  } else {
+    table.classList.remove('compact-table');
+  }
+
+  // Toggle switch visibility
+  document.getElementById('summarySwitchContainer').style.display = (isSumm || isRec) ? 'flex' : 'none';
+
+  processLocalData();
+}
+
+function toggleFullInvoiceInfo(checked) {
+  showFullInvoiceInfo = checked;
   processLocalData();
 }
 
@@ -1049,7 +1122,8 @@ function renderRecTableGrouped(groupedRows) {
       const sumQty = filtered.reduce((sum, it) => sum + (it.qty || 0), 0);
       
       if (sumQty > 0) {
-        const textContent = `${sumQty}`;
+        const invIDText = showFullInvoiceInfo ? ` (${esc(inv.invDeliveryID)})` : '';
+        const textContent = `${sumQty}${invIDText}`;
         
         let imgEmoji = '';
         if (inv.image) {
@@ -1104,7 +1178,9 @@ function renderRecTableGrouped(groupedRows) {
 }
 function renderSummaryTable(rows) {
   const tbody = document.getElementById('mainTbody');
+  tbody.parentElement.classList.add('compact-table');
   document.getElementById('tableCount').textContent = `(${rows.length} รายการ)`;
+
 
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🔍</div><p>ไม่พบข้อมูลที่ตรงกับตัวกรอง</p></div></td></tr>`;
@@ -1117,8 +1193,8 @@ function renderSummaryTable(rows) {
     const sumQty = f.reduce((sum, it) => sum + (it.qty || 0), 0);
     if (sumQty <= 0) return `<div style="text-align:center; color:var(--border)">-</div>`;
     const k = labelToKey(lbl);
-    const cls = k === 'N2' ? 'badge-n2' : k === 'O2L' ? 'badge-o2' : 'badge-o2s';
-    return `<div style="text-align:center;"><span class="badge ${cls}" style="min-width:35px; text-align:center;">${sumQty}</span></div>`;
+    const color = k === 'N2' ? 'var(--accent-n2)' : k === 'O2L' ? 'var(--accent-o2)' : 'var(--accent-o2s)';
+    return `<div style="text-align:center;"><strong style="font-size:1.15rem; color:${color};">${sumQty}</strong></div>`;
   };
 
   const getQtyRecGroup = (invoices, lbl) => {
@@ -1130,11 +1206,12 @@ function renderSummaryTable(rows) {
       const filtered = items.filter(it => it.product === lbl);
       const sumQty = filtered.reduce((sum, it) => sum + (it.qty || 0), 0);
       if (sumQty > 0) {
-        const invIDText = `(${esc(inv.invDeliveryID)})`;
+        const invIDText = showFullInvoiceInfo ? ` (${esc(inv.invDeliveryID)})` : '';
+        const textContent = `${sumQty}${invIDText}`;
         const content = inv.image 
-           ? `${sumQty} <a href="#" onclick="openLightbox('${esc(inv.image)}'); return false;" style="color:inherit;text-decoration:underline;">${invIDText}</a>`
-           : `${sumQty} ${invIDText}`;
-        els.push(`<div style="margin-bottom:4px; text-align:center;"><span class="badge ${cls}">${content}</span></div>`);
+           ? `<a href="#" onclick="openLightbox('${esc(inv.image)}'); return false;" style="color:inherit;text-decoration:none;">${textContent} 🖼️</a>`
+           : textContent;
+        els.push(`<div style="margin-bottom:4px; text-align:center;"><span class="badge ${cls}" style="cursor:${inv.image ? 'pointer':'default'};">${content}</span></div>`);
       }
     }
     return els.length > 0 ? els.join('') : `<div style="text-align:center; color:var(--border)">-</div>`;
@@ -1143,10 +1220,10 @@ function renderSummaryTable(rows) {
   tbody.innerHTML = rows.map(r => {
     if (r.type === 'Tank') {
       const items = detailCache['Tank_' + r.rec.invDeliveryID] || [];
-      const imgHTML = r.rec.image ? `<img src="${esc(r.rec.image)}" class="img-thumb" style="width:40px;height:40px;" alt="Inv" referrerpolicy="no-referrer" onclick="openLightbox(this.src)" />` : '<span class="no-image">—</span>';
-      return `<tr>
+      const imgHTML = r.rec.image ? `<img src="${esc(r.rec.image)}" class="img-thumb" style="width:36px;height:36px;" alt="Inv" referrerpolicy="no-referrer" onclick="openLightbox(this.src)" />` : '<span class="no-image">—</span>';
+      return `<tr class="row-tank">
         <td></td>
-        <td><span class="badge" style="background:var(--accent1);color:#000;">ส่งอัด</span></td>
+        <td><span class="badge" style="background:var(--accent1);color:#000;font-size:0.7rem;padding:2px 8px;">ส่งอัด</span></td>
         <td><strong>${esc(r.rec.invDeliveryID)}</strong></td>
         <td>${formatDisplayDate(r.date)}</td>
         <td>${imgHTML}</td>
@@ -1156,9 +1233,9 @@ function renderSummaryTable(rows) {
         <td style="display:none;"></td>
       </tr>`;
     } else {
-      return `<tr>
+      return `<tr class="row-recripte">
          <td></td>
-         <td><span class="badge" style="background:#48bb78;color:#fff;">ส่งคืน</span></td>
+         <td><span class="badge" style="background:#48bb78;color:#fff;font-size:0.7rem;padding:2px 8px;">ส่งคืน</span></td>
          <td><span style="color:var(--text-dim);">—</span></td>
          <td>${formatDisplayDate(r.date)}</td>
          <td></td>
@@ -1225,11 +1302,14 @@ function toggleGroupDetail(date, row) {
                 </td>
               `;
             }
+            const cls = badgeClass(it.product);
+            const colorStyle = cls === 'badge-n2' ? 'color:var(--accent-n2);' : cls === 'badge-o2' ? 'color:var(--accent-o2);' : 'color:var(--accent-o2s);';
+            
             return `
               <tr>
-                <td><strong style="color:var(--text-primary);">${esc(it.invID)}</strong></td>
-                <td><span class="badge ${badgeClass(it.product)}">${esc(it.product)}</span></td>
-                <td style="text-align:center;"><strong>${it.qty}</strong></td>
+                <td><strong style="${colorStyle}">${esc(it.invID)}</strong></td>
+                <td><span class="badge ${cls}">${esc(it.product)}</span></td>
+                <td style="text-align:center;"><strong style="${colorStyle}">${it.qty}</strong></td>
                 ${actionsHTML}
               </tr>
             `;
@@ -1249,12 +1329,16 @@ function toggleDetail(invID, btn) {
     const items = detailCache[currentSystem + '_' + invID] || [];
     const c = document.getElementById('detail-content-' + escAttr(invID));
     if (!items.length) { c.innerHTML = '<p>ยังไม่มีรายการ</p>'; return; }
-    c.innerHTML = `<table class="detail-sub-table"><thead><tr><th>สินค้า</th><th>จำนวน (ถัง)</th><th>วันที่</th></tr></thead>
-      <tbody>${items.map(it => `<tr>
-        <td><span class="badge ${badgeClass(it.product)}">${esc(it.product)}</span></td>
-        <td><strong>${it.qty}</strong></td>
-        <td>${formatDisplayDate(it.date)}</td>
-      </tr>`).join('')}</tbody></table>`;
+    c.innerHTML = `<table class="detail-sub-table"><thead><tr><th>สินค้า</th><th style="text-align:center;">จำนวน (ถัง)</th><th>วันที่</th></tr></thead>
+      <tbody>${items.map(it => {
+        const cls = badgeClass(it.product);
+        const colorStyle = cls === 'badge-n2' ? 'color:var(--accent-n2);' : cls === 'badge-o2' ? 'color:var(--accent-o2);' : 'color:var(--accent-o2s);';
+        return `<tr>
+          <td><span class="badge ${cls}">${esc(it.product)}</span></td>
+          <td style="text-align:center;"><strong style="${colorStyle}">${it.qty}</strong></td>
+          <td>${formatDisplayDate(it.date)}</td>
+        </tr>`;
+      }).join('')}</tbody></table>`;
   }
 }
 
