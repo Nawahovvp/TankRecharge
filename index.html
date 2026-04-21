@@ -437,10 +437,10 @@
 
       <div class="section-label">รูปภาพใบส่งอัด</div>
       <div class="img-upload-zone" id="uploadZone">
-        <input type="file" id="imgFileInput" accept="image/*" onchange="handleImageSelect(event)" />
+        <input type="file" id="imgFileInput" accept="image/*" capture="environment" onchange="handleImageSelect(event)" />
         <div id="uploadPlaceholder">
-          <div class="upload-icon">📄</div>
-          <p>คลิกหรือลากวางรูปภาพที่นี่</p>
+          <div class="upload-icon">📷</div>
+          <p>คลิกเพื่อถ่ายรูป หรือเลือกรูปภาพ</p>
           <span>JPG, PNG, WEBP | สูงสุด 5 MB</span>
         </div>
         <div id="imgPreviewWrap" class="img-preview-wrap" style="display:none;">
