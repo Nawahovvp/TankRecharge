@@ -723,6 +723,13 @@ function switchSystem(sys) {
   document.getElementById('lblO2L').textContent = isSumm ? 'O₂ 1.5Q ค้างส่ง' : 'O₂ 1.5Q รวม';
   document.getElementById('lblO2S').textContent = isSumm ? 'O₂ 0.5Q ค้างส่ง' : 'O₂ 0.5Q รวม';
 
+  // Specific header handling for Recripte (Grouped)
+  const isGroupedRec = (sys === 'Recripte');
+  document.getElementById('mainTable').querySelector('th:first-child').style.display = isGroupedRec ? 'none' : 'table-cell';
+  document.getElementById('thInv').style.display = isGroupedRec ? 'none' : 'table-cell';
+  document.getElementById('thImg').style.display = isGroupedRec ? 'none' : 'table-cell';
+  document.getElementById('thManage').style.display = isGroupedRec ? 'none' : (isSumm ? 'none' : 'table-cell');
+
   processLocalData();
 }
 
@@ -902,9 +909,22 @@ function processLocalData() {
     });
     // Sort rows by date descending for the Return tab
     if (currentSystem === 'Recripte') {
-      rowsToRender.sort((a, b) => b.date.localeCompare(a.date));
+      // Group recMain by date
+      const groupedRecMap = {};
+      for (const r of (mainArr || [])) {
+        if (!groupedRecMap[r.date]) groupedRecMap[r.date] = [];
+        groupedRecMap[r.date].push(r);
+      }
+      
+      const groupedRecList = Object.keys(groupedRecMap).map(d => ({
+        date: d,
+        invoices: groupedRecMap[d]
+      })).sort((a, b) => b.date.localeCompare(a.date));
+      
+      renderRecTableGrouped(groupedRecList);
+    } else {
+      renderStandardTable(rowsToRender);
     }
-    renderStandardTable(rowsToRender);
 
   } else {
     // Summary
@@ -998,8 +1018,85 @@ function renderStandardTable(rows) {
 }
 
 // ============================================================
-//  RENDER SUMMARY TABLE
+//  RENDER RECRIPTE GROUPED TABLE
 // ============================================================
+function renderRecTableGrouped(groupedRows) {
+  const tbody = document.getElementById('mainTbody');
+  
+  // Total record count across all groups
+  const totalCount = groupedRows.reduce((sum, g) => sum + g.invoices.length, 0);
+  document.getElementById('tableCount').textContent = `(${totalCount} รายการ)`;
+
+  if (!groupedRows.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🔍</div><p>ไม่พบข้อมูลที่ตรงกับตัวกรอง</p></div></td></tr>`;
+    return;
+  }
+
+  const getQtyLinkGroup = (invoices, lbl) => {
+    let els = [];
+    const k = labelToKey(lbl);
+    const cls = k === 'N2' ? 'badge-n2' : k === 'O2L' ? 'badge-o2' : 'badge-o2s';
+    const isAdmin = currentUser && String(currentUser.Auth).trim().toLowerCase() === 'admin';
+    
+    for (const inv of invoices) {
+      const items = detailCache['Recripte_' + inv.invDeliveryID] || [];
+      const filtered = items.filter(it => it.product === lbl);
+      const sumQty = filtered.reduce((sum, it) => sum + (it.qty || 0), 0);
+      
+      if (sumQty > 0) {
+        const textContent = `${sumQty}`;
+        
+        let imgEmoji = '';
+        if (inv.image) {
+          imgEmoji = `<button onclick="openLightbox('${esc(inv.image)}'); event.stopPropagation();" 
+            style="background:rgba(99,179,237,0.15); border:1px solid rgba(99,179,237,0.3); border-radius:6px; cursor:pointer; width:26px; height:26px; display:flex; align-items:center; justify-content:center; color:var(--accent1); padding:0; margin-left:6px;" title="ดูรูปภาพ">📸</button>`;
+        }
+
+        els.push(`
+          <div style="margin-bottom:6px; text-align:center; display:flex; align-items:center; justify-content:center;">
+            <span class="badge ${cls}" style="display:inline-flex; align-items:center; padding:4px 10px; border:1px solid rgba(255,255,255,0.1);">
+              <span style="font-weight:700; font-size:0.9rem;">${textContent}</span>
+              ${imgEmoji}
+            </span>
+          </div>`);
+      }
+    }
+    return els.length > 0 ? els.join('') : `<div style="text-align:center; color:var(--border)">-</div>`;
+  };
+
+  const getManageGroup = (invoices) => {
+    if (!currentUser || String(currentUser.Auth).trim().toLowerCase() !== 'admin') return '-';
+    
+    return invoices.map(inv => `
+      <div style="margin-bottom:6px; display:flex; align-items:center; justify-content:flex-end; gap:8px;">
+        <span style="font-size:0.7rem; color:var(--text-muted); font-weight:600;">${esc(inv.invDeliveryID)}:</span>
+        <button class="btn btn-success btn-sm" style="padding:2px 6px; font-size:0.75rem;" onclick="openEditModal('${esc(inv.invDeliveryID)}')">✏️</button>
+        <button class="btn btn-danger btn-sm" style="padding:2px 6px; font-size:0.75rem;" onclick="confirmDelete('${esc(inv.invDeliveryID)}')">🗑️</button>
+      </div>
+    `).join('');
+  };
+
+  tbody.innerHTML = groupedRows.map(g => {
+    const dateID = escAttr(g.date);
+    return `
+      <tr style="cursor:pointer;" onclick="toggleGroupDetail('${esc(g.date)}', this)">
+        <td style="display:none;"></td> 
+        <td style="display:none;"></td>
+        <td style="display:none;"></td>
+        <td><strong style="color:var(--accent1);">▶ ${formatDisplayDate(g.date)}</strong></td>
+        <td style="display:none;"></td>
+        <td>${getQtyLinkGroup(g.invoices, 'ไนโตรเจน 1.5 Q')}</td>
+        <td>${getQtyLinkGroup(g.invoices, 'ออกซิเจน 1.5 Q')}</td>
+        <td>${getQtyLinkGroup(g.invoices, 'ออกซิเจน 0.5 Q')}</td>
+        <td style="display:none;"></td>
+      </tr>
+      <tr class="detail-row"><td colspan="9">
+        <div class="detail-inner" id="group-detail-${dateID}">
+          <div class="detail-table-wrap" id="group-detail-content-${dateID}"></div>
+        </div>
+      </td></tr>`;
+  }).join('');
+}
 function renderSummaryTable(rows) {
   const tbody = document.getElementById('mainTbody');
   document.getElementById('tableCount').textContent = `(${rows.length} รายการ)`;
@@ -1072,6 +1169,71 @@ function renderSummaryTable(rows) {
 // ============================================================
 //  DETAIL ROW
 // ============================================================
+// ============================================================
+//  DETAIL ROW (Grouped)
+// ============================================================
+function toggleGroupDetail(date, row) {
+  const dateID = escAttr(date);
+  const el = document.getElementById('group-detail-' + dateID);
+  if (!el) return;
+  const isOpen = el.classList.toggle('open');
+  
+  // Find the anchor element (strong) and toggle a visual indicator
+  const strong = row.querySelector('strong');
+  if (strong) {
+    strong.textContent = (isOpen ? '▼ ' : '▶ ') + formatDisplayDate(date);
+  }
+
+  if (isOpen) {
+    const c = document.getElementById('group-detail-content-' + dateID);
+    
+    // Aggregate all details for this date
+    const invoices = (allDataset.recMain || []).filter(r => r.date === date);
+    let allItems = [];
+    for (const inv of invoices) {
+      const details = detailCache['Recripte_' + inv.invDeliveryID] || [];
+      details.forEach(d => allItems.push({ ...d, invID: inv.invDeliveryID }));
+    }
+
+    if (!allItems.length) { c.innerHTML = '<p>ยังไม่มีรายการ</p>'; return; }
+    
+    const isAdmin = currentUser && String(currentUser.Auth).trim().toLowerCase() === 'admin';
+    
+    c.innerHTML = `
+      <table class="detail-sub-table">
+        <thead>
+          <tr>
+            <th>เลขที่ใบกำกับ</th>
+            <th>สินค้า</th>
+            <th style="text-align:center;">จำนวน (ถัง)</th>
+            ${isAdmin ? '<th style="text-align:right;">จัดการ</th>' : ''}
+          </tr>
+        </thead>
+        <tbody>
+          ${allItems.map(it => {
+            let actionsHTML = '';
+            if (isAdmin) {
+              actionsHTML = `
+                <td style="text-align:right;">
+                  <button class="btn btn-success btn-sm" style="padding:4px 8px; font-size:0.8rem;" onclick="openEditModal('${esc(it.invID)}')">✏️ แก้ไข</button>
+                  <button class="btn btn-danger btn-sm" style="padding:4px 8px; font-size:0.8rem; margin-left:4px;" onclick="confirmDelete('${esc(it.invID)}')">🗑️ ลบ</button>
+                </td>
+              `;
+            }
+            return `
+              <tr>
+                <td><strong style="color:var(--text-primary);">${esc(it.invID)}</strong></td>
+                <td><span class="badge ${badgeClass(it.product)}">${esc(it.product)}</span></td>
+                <td style="text-align:center;"><strong>${it.qty}</strong></td>
+                ${actionsHTML}
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+}
+
 function toggleDetail(invID, btn) {
   const el = document.getElementById('detail-' + escAttr(invID));
   if (!el) return;
