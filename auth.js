@@ -26,8 +26,7 @@ function updateAuthUI() {
   const loginOverlay = document.getElementById('loginOverlay');
   
   if (currentUser) {
-    infoSpan.textContent = `👤 ${currentUser.Name} (${currentUser.Plant})`;
-    infoSpan.style.display = 'inline';
+    infoSpan.style.display = 'none';
     appWrap.style.display = 'block';
     loginOverlay.classList.remove('open');
   } else {
@@ -101,6 +100,24 @@ function openLoginSetting() {
     document.getElementById('infoPlant').textContent = currentUser.Plant || '—';
     document.getElementById('infoPlantCode').textContent = currentUser.PlantCode || '—';
     document.getElementById('infoAuth').textContent = currentUser.Auth || '—';
+
+    // Profile header
+    const name = currentUser.Name || '?';
+    const initials = name.split(' ').map(w => w.charAt(0)).join('').slice(0, 2);
+    document.getElementById('profileAvatar').textContent = initials;
+    document.getElementById('profileName').textContent = name;
+
+    const roleEl = document.getElementById('profileRole');
+    const isAdmin = String(currentUser.Auth || '').trim().toLowerCase() === 'admin';
+    roleEl.textContent = isAdmin ? '🛡️ Admin' : '👤 User';
+    roleEl.style.background = isAdmin 
+      ? 'rgba(99,179,237,0.2)' 
+      : 'rgba(104,211,145,0.15)';
+    roleEl.style.color = isAdmin ? 'var(--accent1)' : 'var(--success)';
+    roleEl.style.border = isAdmin 
+      ? '1px solid rgba(99,179,237,0.3)' 
+      : '1px solid rgba(104,211,145,0.3)';
+
     document.getElementById('settingOverlay').classList.add('open');
   } else {
     document.getElementById('loginOverlay').classList.add('open');
