@@ -76,12 +76,25 @@ function switchSystem(sys) {
   if (isSumm) table.classList.add('compact-table'); else table.classList.remove('compact-table');
 
   document.getElementById('summarySwitchContainer').style.display = (isSumm || isRec) ? 'flex' : 'none';
+  document.getElementById('summaryLegend').style.display = isSumm ? 'block' : 'none';
   processLocalData();
 }
 
 function toggleFullInvoiceInfo(checked) {
   showFullInvoiceInfo = checked;
   processLocalData();
+}
+
+function toggleLegend() {
+  const content = document.getElementById('legendContent');
+  const arrow = document.getElementById('legendArrow');
+  if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+    content.style.maxHeight = '0px';
+    arrow.style.transform = 'rotate(0deg)';
+  } else {
+    content.style.maxHeight = content.scrollHeight + 'px';
+    arrow.style.transform = 'rotate(180deg)';
+  }
 }
 
 function setProductFilter(prod, btn) {

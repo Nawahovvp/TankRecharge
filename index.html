@@ -695,6 +695,72 @@
     </div>
   </div>
 
+  <!-- SUMMARY LEGEND -->
+  <div id="summaryLegend" style="display: none; margin-bottom: 20px;">
+    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <button onclick="toggleLegend()" id="legendToggleBtn" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: none; border: none; cursor: pointer; color: var(--text-primary); font-family: inherit;">
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 700;">
+          📖 คำอธิบายสี & วิธีใช้งาน
+        </span>
+        <span id="legendArrow" style="color: var(--text-muted); transition: transform 0.3s; font-size: 0.8rem;">▼</span>
+      </button>
+      <div id="legendContent" style="max-height: 0; overflow: hidden; transition: max-height 0.35s ease;">
+        <div style="padding: 0 20px 18px; border-top: 1px solid var(--border);">
+
+          <div style="margin-top: 14px; margin-bottom: 14px;">
+            <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent1); margin-bottom: 10px;">ความหมายของสี</div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-secondary); padding: 10px 14px; border-radius: var(--radius-sm);">
+                <span style="border: 2px solid var(--success); background: rgba(104,211,145,0.15); border-radius: 20px; padding: 3px 12px; color: var(--success); font-weight: 700; font-size: 0.9rem; white-space: nowrap;">14</span>
+                <div>
+                  <div style="font-size: 0.85rem; font-weight: 600; color: var(--success);">สีเขียว — คืนครบ</div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">ยอดสะสมตั้งแต่เริ่มต้นจนถึงแถวนี้ = 0 ไม่มียอดค้างส่ง</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-secondary); padding: 10px 14px; border-radius: var(--radius-sm);">
+                <span style="border: 2px solid var(--danger); background: rgba(252,129,129,0.15); border-radius: 20px; padding: 3px 12px; color: var(--danger); font-weight: 700; font-size: 0.9rem; white-space: nowrap;">8</span>
+                <div>
+                  <div style="font-size: 0.85rem; font-weight: 600; color: var(--danger);">สีแดง — ยอดไม่ตรง</div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">ยอดส่งคืนไม่เท่ากับยอดส่งอัดในรอบเดียวกัน และยังมียอดค้างอยู่</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-secondary); padding: 10px 14px; border-radius: var(--radius-sm);">
+                <span style="color: var(--accent-rec); font-weight: 700; font-size: 0.9rem; padding: 3px 12px; white-space: nowrap;">5</span>
+                <div>
+                  <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent-rec);">สีส้ม — ปกติ</div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">ยอดส่งคืนตรงกับส่งอัดในรอบเดียวกัน แต่ยอดสะสมรวมยังไม่เป็น 0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent1); margin-bottom: 10px;">วิธีใช้งาน</div>
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem; color: var(--text-muted);">
+              <div style="display: flex; gap: 8px; align-items: flex-start;">
+                <span style="color: var(--accent1); font-weight: 700; flex-shrink: 0;">1.</span>
+                <span>ข้อมูลจัดเป็น <strong style="color:var(--text-primary);">กลุ่ม</strong> โดยแต่ละกลุ่มคือ 1 รอบการจัดส่ง ประกอบด้วย "ส่งอัด" (สีฟ้า) คู่กับ "ส่งคืน" (สีส้ม) ที่ตามมา</span>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: flex-start;">
+                <span style="color: var(--accent1); font-weight: 700; flex-shrink: 0;">2.</span>
+                <span>กดที่แถว <strong style="color:var(--text-primary);">ส่งคืน</strong> เพื่อขยายดูรายละเอียดใบกำกับ สินค้า และจำนวน</span>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: flex-start;">
+                <span style="color: var(--accent1); font-weight: 700; flex-shrink: 0;">3.</span>
+                <span>เปิดสวิตช์ <strong style="color:var(--text-primary);">"แสดงเลขที่ใบกำกับ"</strong> ด้านบนขวา เพื่อดูเลข Invoice กำกับไว้ที่ตัวเลข</span>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: flex-start;">
+                <span style="color: var(--accent1); font-weight: 700; flex-shrink: 0;">4.</span>
+                <span>ถ้ามีไอคอน 🖼️ ต่อท้ายตัวเลข สามารถกดเพื่อดูรูปภาพใบส่งคืนได้</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="table-card">
     <div class="table-header" style="display: flex; justify-content: space-between; align-items: center;">
       <div>
