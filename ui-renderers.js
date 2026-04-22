@@ -135,30 +135,154 @@ function renderSummaryTable(rows) {
     return `<div style="text-align:center;"><strong style="font-size:1.15rem; color:var(--accent1);">${sumQty}</strong></div>`;
   };
 
-  const getQtyRecGroup = (invoices, lbl) => {
+  const getQtyRecGroup = (invoices, lbl, prevTankSum = null, balanceAfter = null) => {
     const els = [];
-    const statusColor = 'var(--accent-rec)';
+    let recSum = 0;
+    
+    for (const inv of invoices) {
+      const items = detailCache['Recripte_' + inv.invDeliveryID] || [];
+      const filtered = items.filter(it => it.product === lbl);
+      recSum += filtered.reduce((sum, it) => sum + (it.qty || 0), 0);
+    }
+
+    const isBalanceZero = (balanceAfter !== null && balanceAfter === 0);
+    const isMismatch = (prevTankSum !== null) && (recSum !== prevTankSum) && !isBalanceZero;
+    
+    let statusColor, highlightStyle;
+    if (isBalanceZero) {
+      statusColor = 'var(--success)';
+      highlightStyle = `border: 2px solid var(--success); background: rgba(104,211,145,0.15); border-radius: 20px; padding: 2px 10px; display:inline-block;`;
+    } else if (isMismatch) {
+      statusColor = 'var(--danger)';
+      highlightStyle = `border: 2px solid var(--danger); background: rgba(252,129,129,0.15); border-radius: 20px; padding: 2px 10px; display:inline-block;`;
+    } else {
+      statusColor = 'var(--accent-rec)';
+      highlightStyle = '';
+    }
+
+    if (recSum === 0) {
+      if (isMismatch) {
+        return `<div style="text-align:center;"><strong style="font-size:1.15rem; color:var(--danger); border: 2px solid var(--danger); background: rgba(252,129,129,0.15); border-radius: 20px; padding: 2px 10px; display:inline-block;">0</strong></div>`;
+      }
+      if (isBalanceZero && prevTankSum !== null && prevTankSum === 0) {
+        return `<div style="text-align:center; color:var(--border)">-</div>`;
+      }
+      return `<div style="text-align:center; color:var(--border)">-</div>`;
+    }
+
     for (const inv of invoices) {
       const items = detailCache['Recripte_' + inv.invDeliveryID] || [];
       const filtered = items.filter(it => it.product === lbl);
       const sumQty = filtered.reduce((sum, it) => sum + (it.qty || 0), 0);
       if (sumQty > 0) {
-        const invIDText = showFullInvoiceInfo ? ` (${esc(inv.invDeliveryID)})` : '';
+        const invIDText = showFullInvoiceInfo ? ` <span style="font-size:0.8rem">(${esc(inv.invDeliveryID)})</span>` : '';
         const textContent = `${sumQty}${invIDText}`;
         const content = inv.image 
-           ? `<a href="#" onclick="openLightbox('${esc(inv.image)}'); return false;" style="color:var(--accent-rec); text-decoration:none;">${textContent} 🖼️</a>`
+           ? `<a href="#" onclick="openLightbox('${esc(inv.image)}'); return false;" style="color:${statusColor}; text-decoration:none;">${textContent} 🖼️</a>`
            : textContent;
-        els.push(`<div style="margin-bottom:4px; text-align:center;"><strong style="font-size:1.15rem; color:${statusColor}; cursor:${inv.image ? 'pointer':'default'};">${content}</strong></div>`);
+        els.push(`<div style="margin-bottom:4px; text-align:center;"><strong style="font-size:1.15rem; color:${statusColor}; cursor:${inv.image ? 'pointer':'default'}; ${highlightStyle}">${content}</strong></div>`);
       }
     }
-    return els.length > 0 ? els.join('') : `<div style="text-align:center; color:var(--border)">-</div>`;
+    return els.join('');
   };
 
-  tbody.innerHTML = rows.map((r, idx) => {
+  // --- Compute running balance from oldest to newest ---
+  const products = ['ไนโตรเจน 1.5 Q', 'ออกซิเจน 1.5 Q', 'ออกซิเจน 0.5 Q'];
+  const balance = {};
+  products.forEach(p => balance[p] = 0);
+  const recBalanceMap = {}; // row index -> { product: balance_after }
+
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i];
     if (r.type === 'Tank') {
       const items = detailCache['Tank_' + r.rec.invDeliveryID] || [];
+      products.forEach(p => {
+        balance[p] += items.filter(it => it.product === p).reduce((sum, it) => sum + (it.qty || 0), 0);
+      });
+    } else {
+      products.forEach(p => {
+        let recQty = 0;
+        for (const inv of r.invoices) {
+          const items = detailCache['Recripte_' + inv.invDeliveryID] || [];
+          recQty += items.filter(it => it.product === p).reduce((sum, it) => sum + (it.qty || 0), 0);
+        }
+        balance[p] -= recQty;
+      });
+      recBalanceMap[i] = { ...balance };
+    }
+  }
+
+  // --- Build groups ---
+  let groups = [];
+  let currentGroup = null;
+
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i];
+    if (r.type === 'Tank') {
+      currentGroup = { tank: r, recriptes: [] };
+      groups.unshift(currentGroup);
+    } else {
+      if (currentGroup) {
+        currentGroup.recriptes.unshift({ rec: r, idx: i });
+      } else {
+        currentGroup = { tank: null, recriptes: [{ rec: r, idx: i }] };
+        groups.unshift(currentGroup);
+      }
+    }
+  }
+
+  // --- Render groups ---
+  let outHTML = '';
+  groups.forEach((g, gIdx) => {
+    if (gIdx > 0) {
+      outHTML += `<tr><td colspan="9" style="height:12px; background:transparent; border:none; padding:0;"></td></tr>`;
+    }
+
+    g.recriptes.forEach((recObj) => {
+      const r = recObj.rec;
+      const idx = recObj.idx;
+
+      const getTankSum = (tank, lbl) => {
+        if (!tank) return null;
+        const items = detailCache['Tank_' + tank.rec.invDeliveryID] || [];
+        return items.filter(it => it.product === lbl).reduce((sum, it) => sum + (it.qty || 0), 0);
+      };
+
+      const n2Prev = getTankSum(g.tank, 'ไนโตรเจน 1.5 Q');
+      const o2lPrev = getTankSum(g.tank, 'ออกซิเจน 1.5 Q');
+      const o2sPrev = getTankSum(g.tank, 'ออกซิเจน 0.5 Q');
+
+      const bal = recBalanceMap[idx] || {};
+      const balN2 = bal['ไนโตรเจน 1.5 Q'] ?? null;
+      const balO2L = bal['ออกซิเจน 1.5 Q'] ?? null;
+      const balO2S = bal['ออกซิเจน 0.5 Q'] ?? null;
+
+      const detailID = `summ-detail-${idx}`;
+      const clickHandler = `toggleSummDetail('Recripte','${esc(r.date)}',${idx},this)`;
+      outHTML += `
+        <tr class="row-recripte" style="cursor:pointer;" onclick="${clickHandler}">
+           <td style="text-align:center;"><strong class="expand-icon" style="color:var(--text-muted);">▶</strong></td>
+           <td><span class="badge" style="background:var(--accent-rec);color:#fff;font-size:0.7rem;padding:2px 8px;">ส่งคืน</span></td>
+           <td style="text-align:center; color:var(--text-muted)">-</td>
+           <td>${formatDisplayDate(r.date)}</td>
+           <td class="hide-mobile"></td>
+           <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ไนโตรเจน 1.5 Q', n2Prev, balN2)}</td>
+           <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 1.5 Q', o2lPrev, balO2L)}</td>
+           <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 0.5 Q', o2sPrev, balO2S)}</td>
+           <td style="display:none;"></td>
+        </tr>
+        <tr class="detail-row"><td colspan="9">
+          <div class="detail-inner" id="${detailID}">
+            <div class="detail-table-wrap" id="${detailID}-content"></div>
+          </div>
+        </td></tr>`;
+    });
+
+    if (g.tank) {
+      const r = g.tank;
+      const items = detailCache['Tank_' + r.rec.invDeliveryID] || [];
       const imgHTML = r.rec.image ? `<img src="${esc(r.rec.image)}" class="img-thumb" style="width:36px;height:36px;" alt="Inv" referrerpolicy="no-referrer" onclick="openLightbox(this.src); event.stopPropagation();" />` : '<span class="no-image">—</span>';
-      return `
+      outHTML += `
          <tr class="row-tank">
            <td style="text-align:center;"></td>
            <td><span class="badge" style="background:var(--accent1);color:#000;font-size:0.7rem;padding:2px 8px;">ส่งอัด</span></td>
@@ -170,28 +294,10 @@ function renderSummaryTable(rows) {
            <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 0.5 Q')}</td>
            <td style="display:none;"></td>
          </tr>`;
-    } else {
-      const detailID = `summ-detail-${idx}`;
-      const clickHandler = `toggleSummDetail('Recripte','${esc(r.date)}',${idx},this)`;
-      return `
-        <tr class="row-recripte" style="cursor:pointer;" onclick="${clickHandler}">
-           <td style="text-align:center;"><strong class="expand-icon" style="color:var(--text-muted);">▶</strong></td>
-           <td><span class="badge" style="background:var(--accent-rec);color:#fff;font-size:0.7rem;padding:2px 8px;">ส่งคืน</span></td>
-           <td style="text-align:center; color:var(--text-muted)">-</td>
-           <td>${formatDisplayDate(r.date)}</td>
-           <td class="hide-mobile"></td>
-           <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ไนโตรเจน 1.5 Q')}</td>
-           <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 1.5 Q')}</td>
-           <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 0.5 Q')}</td>
-           <td style="display:none;"></td>
-        </tr>
-        <tr class="detail-row"><td colspan="9">
-          <div class="detail-inner" id="${detailID}">
-            <div class="detail-table-wrap" id="${detailID}-content"></div>
-          </div>
-        </tr>`;
     }
-  }).join('');
+  });
+
+  tbody.innerHTML = outHTML;
 }
 
 function toggleSummDetail(type, id, idx, rowEl) {
