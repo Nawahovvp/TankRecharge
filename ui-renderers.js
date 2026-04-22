@@ -40,9 +40,11 @@ function renderStandardTable(rows) {
 
     return `
       <tr>
+        <td style="display:none;"></td>
+        <td style="display:none;"></td>
         <td>${formatDisplayDate(r.date)}</td>
         <td><strong>${esc(r.invDeliveryID)}</strong></td>
-        <td>${imgHTML}</td>
+        <td class="hide-mobile">${imgHTML}</td>
         <td>${getQty(items, 'ไนโตรเจน 1.5 Q')}</td>
         <td>${getQty(items, 'ออกซิเจน 1.5 Q')}</td>
         <td>${getQty(items, 'ออกซิเจน 0.5 Q')}</td>
@@ -97,10 +99,15 @@ function renderRecTableGrouped(groupedRows) {
     const dateID = escAttr(g.date);
     return `
       <tr style="cursor:pointer;" onclick="toggleGroupDetail('${esc(g.date)}', this)">
-        <td><strong class="expand-icon" style="color:var(--accent-rec); margin-right:8px;">▶</strong><strong style="color:var(--accent-rec);">${formatDisplayDate(g.date)}</strong></td>
+        <td><strong class="expand-icon" style="color:var(--accent-rec); margin-right:8px;">▶</strong></td>
+        <td style="display:none;"></td>
+        <td><strong style="color:var(--accent-rec);">${formatDisplayDate(g.date)}</strong></td>
+        <td style="display:none;"></td>
+        <td class="hide-mobile" style="display:none;"></td>
         <td>${getQtyLinkGroup(g.invoices, 'ไนโตรเจน 1.5 Q')}</td>
         <td>${getQtyLinkGroup(g.invoices, 'ออกซิเจน 1.5 Q')}</td>
         <td>${getQtyLinkGroup(g.invoices, 'ออกซิเจน 0.5 Q')}</td>
+        <td style="display:none;"></td>
       </tr>
       <tr class="detail-row"><td colspan="9">
         <div class="detail-inner" id="group-detail-${dateID}">
@@ -157,24 +164,26 @@ function renderSummaryTable(rows) {
            <td><span class="badge" style="background:var(--accent1);color:#000;font-size:0.7rem;padding:2px 8px;">ส่งอัด</span></td>
            <td><strong style="color:var(--text-primary);">${esc(r.rec.invDeliveryID)}</strong></td>
            <td>${formatDisplayDate(r.date)}</td>
-           <td>${imgHTML}</td>
+           <td class="hide-mobile">${imgHTML}</td>
            <td style="text-align:center;">${getQtyTank(items, 'ไนโตรเจน 1.5 Q')}</td>
            <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 1.5 Q')}</td>
            <td style="text-align:center;">${getQtyTank(items, 'ออกซิเจน 0.5 Q')}</td>
+           <td style="display:none;"></td>
          </tr>`;
     } else {
       const detailID = `summ-detail-${idx}`;
       const clickHandler = `toggleSummDetail('Recripte','${esc(r.date)}',${idx},this)`;
       return `
         <tr class="row-recripte" style="cursor:pointer;" onclick="${clickHandler}">
-           <td style="text-align:center;"></td>
+           <td style="text-align:center;"><strong class="expand-icon" style="color:var(--text-muted);">▶</strong></td>
            <td><span class="badge" style="background:var(--accent-rec);color:#fff;font-size:0.7rem;padding:2px 8px;">ส่งคืน</span></td>
-           <td style="text-align:left;"><strong class="expand-icon" style="color:var(--text-muted);">▶</strong></td>
+           <td style="text-align:center; color:var(--text-muted)">-</td>
            <td>${formatDisplayDate(r.date)}</td>
-           <td></td>
+           <td class="hide-mobile"></td>
            <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ไนโตรเจน 1.5 Q')}</td>
            <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 1.5 Q')}</td>
            <td style="text-align:center;">${getQtyRecGroup(r.invoices, 'ออกซิเจน 0.5 Q')}</td>
+           <td style="display:none;"></td>
         </tr>
         <tr class="detail-row"><td colspan="9">
           <div class="detail-inner" id="${detailID}">

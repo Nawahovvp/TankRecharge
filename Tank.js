@@ -66,7 +66,7 @@ function switchSystem(sys) {
   const isGroupedRec = (sys === 'Recripte');
 
   // Explicitly set all headers
-  document.getElementById('thExp').style.display = (isTank || isGroupedRec) ? 'none' : 'table-cell';
+  document.getElementById('thExp').style.display = isTank ? 'none' : 'table-cell';
   document.getElementById('thStatus').style.display = isSumm ? 'table-cell' : 'none';
   document.getElementById('thInv').style.display = isGroupedRec ? 'none' : 'table-cell';
   document.getElementById('thImg').style.display = isGroupedRec ? 'none' : 'table-cell';

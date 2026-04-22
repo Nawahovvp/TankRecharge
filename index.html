@@ -418,10 +418,12 @@
       .tabs-wrapper { margin-bottom: 15px; padding-bottom: 10px; }
       .tab-btn { padding: 8px 16px; font-size: 0.9rem; }
       
-      .table-header { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; }
-      .data-table th, .data-table td { padding: 10px; font-size: 0.8rem; }
-      .data-table th:nth-child(2), .data-table td:nth-child(2),
-      .data-table th:nth-child(4), .data-table td:nth-child(4) { display: none; }
+      .data-table th, .data-table td { padding: 10px 8px; font-size: 0.82rem; }
+      
+      .hide-mobile { display: none !important; }
+      
+      .data-table th { white-space: nowrap; }
+      .data-table td { white-space: nowrap; }
       
       .form-row { flex-direction: column; gap: 12px; }
       .modal-box { max-height: 95vh; border-radius: var(--radius-md); }
@@ -704,7 +706,7 @@
             <th id="thStatus" style="display:none;width:70px;">สถานะ</th>
             <th id="thDate">วันที่</th>
             <th id="thInv">เลขที่ใบส่งอัด</th>
-            <th id="thImg">รูปภาพ</th>
+            <th id="thImg" class="hide-mobile">รูปภาพ</th>
             <th style="text-align:center;"><span class="badge badge-n2">N₂ 1.5Q</span></th>
             <th style="text-align:center;"><span class="badge badge-o2">O₂ 1.5Q</span></th>
             <th style="text-align:center;"><span class="badge badge-o2s">O₂ 0.5Q</span></th>
