@@ -300,7 +300,7 @@
     .img-upload-zone:hover, .img-upload-zone.drag-over {
       border-color: var(--accent1); background: rgba(99,179,237,0.06);
     }
-    .img-upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+    .img-upload-zone input[type="file"] { display: none; }
     .img-upload-zone .upload-icon { font-size: 36px; margin-bottom: 8px; }
     .img-upload-zone p { font-size: 0.85rem; color: var(--text-muted); }
     .img-upload-zone span { font-size: 0.75rem; color: var(--text-dim); }
@@ -536,10 +536,19 @@
 
       <div class="section-label">รูปภาพใบส่งอัด</div>
       <div class="img-upload-zone" id="uploadZone">
-        <input type="file" id="imgFileInput" accept="image/*" onchange="handleImageSelect(event)" />
+        <input type="file" id="imgFileInputCamera" accept="image/*" capture="environment" onchange="handleImageSelect(event)" />
+        <input type="file" id="imgFileInputGallery" accept="image/*" onchange="handleImageSelect(event)" />
         <div id="uploadPlaceholder">
           <div class="upload-icon">📷</div>
-          <p>คลิกเพื่อถ่ายรูป หรือเลือกรูปภาพ</p>
+          <p style="margin-bottom: 12px; color: var(--text-muted); font-size: 0.95rem;">เลือกช่องทางการอัปโหลด</p>
+          <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 12px;">
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('imgFileInputCamera').click(); event.stopPropagation();">
+              📸 ถ่ายภาพ
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('imgFileInputGallery').click(); event.stopPropagation();">
+              🖼️ คลังภาพ
+            </button>
+          </div>
           <span>JPG, PNG, WEBP | สูงสุด 5 MB</span>
         </div>
         <div id="imgPreviewWrap" class="img-preview-wrap" style="display:none;">

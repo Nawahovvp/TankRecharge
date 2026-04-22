@@ -416,7 +416,8 @@ function handleImageSelect(evt) {
 }
 function removeImage(evt) { evt.stopPropagation(); imageBase64 = null; imageFilename = ''; resetImageUI(); }
 function resetImageUI() {
-  document.getElementById('imgFileInput').value = '';
+  document.getElementById('imgFileInputCamera').value = '';
+  document.getElementById('imgFileInputGallery').value = '';
   document.getElementById('imgPreview').src = '';
   document.getElementById('uploadPlaceholder').style.display  = 'block';
   document.getElementById('imgPreviewWrap').style.display = 'none';
